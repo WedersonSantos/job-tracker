@@ -74,6 +74,8 @@ model Profile {
   /// e stacks preferidas. Validado com Zod na borda, como `links` e `resume`.
   /// Não vem em export nenhum — imune ao import do LinkedIn.
   jobPreferences Json?
+  /// Respostas configuradas pelo usuário para candidaturas, fora do currículo.
+  formFillDefaults Json?
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

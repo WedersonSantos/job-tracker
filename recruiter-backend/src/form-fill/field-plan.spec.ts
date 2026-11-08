@@ -1,4 +1,9 @@
-import { emptyLinks, emptyResume } from '@recruit/shared';
+import {
+  emptyLinks,
+  emptyResume,
+  emptyFormFillDefaults,
+  profileLinksSchema,
+} from '@recruit/shared';
 import { buildFieldPlan, NEVER_FILL, type FillSource } from './field-plan';
 
 function source(over: Partial<FillSource> = {}): FillSource {
@@ -51,11 +56,55 @@ describe('buildFieldPlan', () => {
 
     expect(semLinks.find((f) => f.what === 'LinkedIn')).toBeUndefined();
     expect(semLinks.find((f) => f.what === 'GitHub')).toBeUndefined();
+    expect(semLinks.find((f) => f.what === 'portfólio / site')).toBeUndefined();
+    expect(
+      semLinks.find((f) => f.what === 'vídeo de apresentação'),
+    ).toBeUndefined();
+  });
+
+  it('preserves links in older profiles without a video property', () => {
+    const old = profileLinksSchema.parse({
+      linkedin: 'https://linkedin.com/in/teste',
+      github: null,
+      website: 'https://example.com/portfolio',
+    });
+    expect(old.presentationVideo).toBeNull();
+    expect(old.website).toBe('https://example.com/portfolio');
+  });
+
+  it('recognizes distinct portfolio and presentation video links', () => {
+    const fields = plan({
+      links: {
+        ...emptyLinks,
+        website: 'https://example.com/portfolio',
+        presentationVideo: 'https://example.com/video',
+      },
+    });
+    const portfolio = fields.find((f) => f.what === 'portfólio / site')!;
+    const video = fields.find((f) => f.what === 'vídeo de apresentação')!;
+    expect(portfolio.labels.test('Portfolio URL *')).toBe(true);
+    expect(portfolio.labels.test('Vídeo de apresentação')).toBe(false);
+    expect(portfolio.names?.test('video_website')).toBe(false);
+    expect(video.labels.test('Link do vídeo de apresentação')).toBe(true);
+    expect(video.labels.test('Video introduction URL')).toBe(true);
+    expect(video.labels.test('Disponibilidade para entrevista por vídeo')).toBe(
+      false,
+    );
+    expect(video.value).toBe('https://example.com/video');
+    expect(
+      profileLinksSchema.safeParse({
+        ...emptyLinks,
+        presentationVideo: 'javascript:alert(1)',
+      }).success,
+    ).toBe(false);
   });
 
   it.each([
     ['nome completo', 'Full name'],
     ['nome completo', 'Name'],
+    ['nome completo', 'Nome completo *'],
+    ['nome completo', 'Nome completo:'],
+    ['nome completo', 'Full name (required)'],
     ['email', 'E-mail'],
     ['email', 'Email'],
     ['telefone', 'Telefone celular'],
@@ -82,6 +131,52 @@ describe('buildFieldPlan', () => {
     // de primeiro nome com o nome inteiro.
     expect(find('primeiro nome')?.labels.test('Nome completo')).toBe(false);
     expect(find('primeiro nome')?.labels.test('Nome')).toBe(true);
+  });
+});
+
+describe('configured application answers', () => {
+  it('uses the configured candidate name instead of the profile nickname', () => {
+    const fields = plan({
+      name: 'Perfil Backend',
+      defaults: { ...emptyFormFillDefaults, fullName: 'Pessoa de Teste' },
+    });
+    expect(fields.find((f) => f.what === 'nome completo')?.value).toBe(
+      'Pessoa de Teste',
+    );
+    expect(fields.find((f) => f.what === 'primeiro nome')?.value).toBe(
+      'Pessoa',
+    );
+    expect(fields.find((f) => f.what === 'sobrenome')?.value).toBe('de Teste');
+  });
+  it('only includes salary and experience answers explicitly configured by the user', () => {
+    expect(
+      plan().some(
+        (f) =>
+          f.what === 'pretensão salarial' || f.what === 'resumo de experiência',
+      ),
+    ).toBe(false);
+    const fields = plan({
+      defaults: {
+        ...emptyFormFillDefaults,
+        salaryExpectation: '5000',
+        experienceSummary: 'Desenvolvimento de APIs em PHP.',
+      },
+    });
+    expect(
+      fields
+        .find((f) => f.what === 'pretensão salarial')
+        ?.labels.test('Qual sua pretensão salarial?'),
+    ).toBe(true);
+    expect(
+      fields
+        .find((f) => f.what === 'resumo de experiência')
+        ?.labels.test('Resumo de experiência *'),
+    ).toBe(true);
+    expect(
+      fields
+        .find((f) => f.what === 'pretensão salarial')
+        ?.labels.test('Current salary'),
+    ).toBe(false);
   });
 });
 

@@ -11,7 +11,7 @@ import {
   workModelFromText,
 } from '../normalize';
 import type { DiscoverySource } from '../provider';
-import { parseEach } from '../provider';
+import { parseEach, settledJobs } from '../provider';
 
 /**
  * Greenhouse — board por empresa.
@@ -43,11 +43,13 @@ const greenhouseBoardSchema = z.object({ jobs: z.array(z.unknown()) });
 
 export class GreenhouseSource implements DiscoverySource {
   readonly name = 'greenhouse';
+  readonly issues: string[] = [];
 
   /** Os slugs vêm do `.env` — ver `watchlist.ts`. */
   constructor(private readonly boards: readonly string[]) {}
 
   async fetch(): Promise<JobSearchResult[]> {
+    this.issues.length = 0;
     const boards = await Promise.allSettled(
       this.boards.map(async (slug) => {
         const payload = greenhouseBoardSchema.safeParse(
@@ -57,7 +59,7 @@ export class GreenhouseSource implements DiscoverySource {
         );
 
         if (!payload.success) {
-          return [];
+          throw new Error('Formato da resposta mudou: lista de vagas ausente.');
         }
 
         return parseEach(payload.data.jobs, (raw) => toResult(raw, slug)).ok;
@@ -66,9 +68,7 @@ export class GreenhouseSource implements DiscoverySource {
 
     // allSettled e nao all: um board acima do teto de tamanho, fora do ar ou
     // com slug morto some da rodada — sem levar os outros junto.
-    return boards.flatMap((board) =>
-      board.status === 'fulfilled' ? board.value : [],
-    );
+    return settledJobs(boards, this.boards, this.issues);
   }
 }
 

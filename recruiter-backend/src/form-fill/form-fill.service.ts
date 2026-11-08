@@ -6,16 +6,25 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { resumeSchema, profileLinksSchema } from '@recruit/shared';
 import {
-  chromium,
-  type BrowserContext,
-  type Locator,
-  type Page,
-} from 'playwright-core';
+  resumeSchema,
+  profileLinksSchema,
+  formFillDefaultsSchema,
+} from '@recruit/shared';
+import { chromium, type BrowserContext, type Page } from 'playwright-core';
 import { assertReachable, FetchError } from '../job/safe-fetch';
 import { PrismaService } from '../prisma/prisma.service';
-import { buildFieldPlan, NEVER_FILL, type PlannedField } from './field-plan';
+import { buildFieldPlan, type PlannedField } from './field-plan';
+import { locateField } from './field-locator';
+import {
+  ResumeFileService,
+  type ResumeAttachment,
+} from '../profile/resume-file.service';
+import { attachResume, type AttachmentReport } from './resume-upload';
+import {
+  findApplicationPage,
+  guardApplicationNavigation,
+} from './application-navigation';
 
 /**
  * Preenchimento assistido de formulário de candidatura.
@@ -58,6 +67,8 @@ export interface FillReport {
   url: string;
   filled: { what: string; value: string }[];
   skipped: string[];
+  message?: string;
+  attachment?: AttachmentReport;
   /** Sempre `false`. Existe para o contrato afirmar o que o código faz. */
   submitted: false;
 }
@@ -82,7 +93,10 @@ export class FormFillService {
    */
   private context: BrowserContext | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly resumeFiles: ResumeFileService,
+  ) {}
 
   async fill(profileId: string, rawUrl: string): Promise<FillReport> {
     const url = navigableUrl(rawUrl);
@@ -129,6 +143,7 @@ export class FormFillService {
         location: true,
         links: true,
         resume: true,
+        formFillDefaults: true,
       },
     });
 
@@ -141,6 +156,7 @@ export class FormFillService {
 
     const links = profileLinksSchema.safeParse(profile.links);
     const resume = resumeSchema.safeParse(profile.resume);
+    const defaults = formFillDefaultsSchema.safeParse(profile.formFillDefaults);
 
     const plan = buildFieldPlan({
       name: profile.name,
@@ -149,6 +165,7 @@ export class FormFillService {
       location: profile.location,
       links: links.success ? links.data : null,
       resume: resume.success ? resume.data : null,
+      defaults: defaults.success ? defaults.data : null,
     });
 
     if (plan.length === 0) {
@@ -162,19 +179,28 @@ export class FormFillService {
     this.running = true;
 
     try {
-      return await this.run(url, plan);
+      return await this.run(
+        url,
+        plan,
+        await this.resumeFiles.attachment(profileId),
+      );
     } finally {
       this.running = false;
     }
   }
 
-  private async run(url: string, plan: PlannedField[]): Promise<FillReport> {
+  private async run(
+    url: string,
+    plan: PlannedField[],
+    file: ResumeAttachment | null,
+  ): Promise<FillReport> {
     const context = await this.window();
 
     // Aba NOVA, sem reaproveitar a inicial: a página que o contexto persistente
     // abre sozinho pode ser substituída no meio da navegação, e o `goto` morre
     // com `ERR_ABORTED; maybe frame was detached`.
-    const page = await context.newPage();
+    let page = await context.newPage();
+    const removeGuard = await guardApplicationNavigation(context);
 
     try {
       await page.goto(url, {
@@ -182,11 +208,19 @@ export class FormFillService {
         timeout: NAV_TIMEOUT_MS,
       });
 
-      // Formulário de ATS é SPA: medido, o HTML inicial da Ashby e da Gupy tem
-      // ZERO campos. Sem esta espera não haveria o que preencher.
-      await page.waitForTimeout(3_000);
-
-      const report = await this.apply(page, plan, url);
+      const destination = await findApplicationPage(page);
+      page = destination.page;
+      const report: FillReport = destination.message
+        ? {
+            url: page.url(),
+            filled: [],
+            skipped: plan.map((item) => item.what),
+            submitted: false,
+            message: destination.message,
+          }
+        : await this.apply(page, plan, page.url());
+      if (file && !destination.message)
+        report.attachment = await attachResume(page, file);
 
       this.logger.log(
         `preenchido ${report.filled.length}/${plan.length} em ${url} — NÃO enviado`,
@@ -204,6 +238,8 @@ export class FormFillService {
         error: 'Service Unavailable',
         message: `Não consegui preencher: ${describe(error)}`,
       });
+    } finally {
+      await removeGuard();
     }
   }
 
@@ -256,7 +292,13 @@ export class FormFillService {
     const skipped: string[] = [];
 
     for (const item of plan) {
-      const target = await locate(page, item);
+      // Demographic choices require the extension's question-scoped controls;
+      // the legacy text-only locator must not guess or expose these as text.
+      if (item.sensitive) {
+        skipped.push(item.what);
+        continue;
+      }
+      const target = await locateField(page, item);
 
       if (!target) {
         // Campo não reconhecido fica VAZIO e é reportado. Chutar aqui é pior
@@ -275,56 +317,6 @@ export class FormFillService {
 
     return { url, filled, skipped, submitted: false };
   }
-}
-
-/**
- * Acha o campo pelo rótulo, e recusa os que nunca devem ser automatizados.
- *
- * `getByLabel` usa o nome acessível — `<label for>`, `aria-label`,
- * `aria-labelledby`. É o que sobrevive a uma troca de id ou de classe, e foi o
- * único sinal que se mostrou estável num formulário real.
- */
-async function locate(page: Page, item: PlannedField): Promise<Locator | null> {
-  const byLabel = page.getByLabel(item.labels).first();
-
-  if ((await byLabel.count()) > 0) {
-    return (await forbidden(byLabel)) ? null : byLabel;
-  }
-
-  if (!item.names) {
-    return null;
-  }
-
-  // Reforço, nunca sinal principal: medido na Ashby, só os campos de sistema
-  // têm nome estável (`_systemfield_email`); toda pergunta personalizada tem
-  // nome UUID, diferente a cada vaga.
-  for (const candidate of await page.locator('input, textarea').all()) {
-    const name = await candidate.getAttribute('name');
-
-    if (name && item.names.test(name) && !(await forbidden(candidate))) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Última barreira antes de escrever no campo.
- *
- * O plano já não inclui carta nem pergunta aberta, mas um rótulo pode casar
- * por acidente — "Telefone" dentro de "Qual seu telefone e disponibilidade?".
- * Conferir no elemento encontrado custa uma leitura e evita escrever resposta
- * genérica onde a resposta é o que decide.
- */
-async function forbidden(target: Locator): Promise<boolean> {
-  const texts = await Promise.all([
-    target.getAttribute('aria-label'),
-    target.getAttribute('placeholder'),
-    target.getAttribute('name'),
-  ]);
-
-  return texts.some((text) => text !== null && NEVER_FILL.test(text));
 }
 
 function describe(error: unknown): string {

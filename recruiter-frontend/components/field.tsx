@@ -55,6 +55,7 @@ export function Field({
       {children ? (
         <select
           name={name}
+          aria-label={label}
           aria-invalid={error ? true : undefined}
           className={className}
           defaultValue={value === undefined ? rest.defaultValue : undefined}

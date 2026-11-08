@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { JobSearchResult } from '@recruit/shared';
+import { leverBoardReference, type JobSearchResult } from '@recruit/shared';
 import { fetchPublicJson } from '../../safe-fetch';
 import { canonicalJobUrl } from '../canonical-url';
 import {
@@ -7,9 +7,10 @@ import {
   seniorityFromTitle,
   stackFromText,
   toIsoDate,
+  fold,
 } from '../normalize';
 import type { DiscoverySource } from '../provider';
-import { parseEach } from '../provider';
+import { parseEach, settledJobs } from '../provider';
 
 /**
  * Lever — board por empresa.
@@ -40,30 +41,41 @@ const leverJobSchema = z.object({
 
 export class LeverSource implements DiscoverySource {
   readonly name = 'lever';
+  readonly issues: string[] = [];
 
   /** Os slugs vêm do `.env` — ver `watchlist.ts`. */
   constructor(private readonly boards: readonly string[]) {}
 
   async fetch(): Promise<JobSearchResult[]> {
+    this.issues.length = 0;
     const boards = await Promise.allSettled(
       this.boards.map(async (slug) => {
+        const reference = leverBoardReference(slug);
         const payload = await fetchPublicJson(
-          `https://api.lever.co/v0/postings/${slug}?mode=json`,
+          `https://api.lever.co/v0/postings/${reference.slug}?mode=json`,
         );
 
         if (!Array.isArray(payload)) {
-          return [];
+          throw new Error('Formato da resposta mudou: lista de vagas ausente.');
         }
 
-        return parseEach(payload, (raw) => toResult(raw, slug)).ok;
+        const jobs = reference.team
+          ? payload.filter((raw: unknown) => {
+              if (!raw || typeof raw !== 'object') return false;
+              const team = (raw as { categories?: { team?: unknown } })
+                .categories?.team;
+              return (
+                typeof team === 'string' && fold(team) === fold(reference.team!)
+              );
+            })
+          : payload;
+        return parseEach(jobs, (raw) => toResult(raw, reference.slug)).ok;
       }),
     );
 
     // allSettled e nao all: um board acima do teto de tamanho, fora do ar ou
     // com slug morto some da rodada — sem levar os outros junto.
-    return boards.flatMap((board) =>
-      board.status === 'fulfilled' ? board.value : [],
-    );
+    return settledJobs(boards, this.boards, this.issues);
   }
 }
 

@@ -1,0 +1,10 @@
+{
+  "version": "16.15",
+  "major": 16,
+  "architecture": "x64",
+  "archiveUrl": "https://get.enterprisedb.com/postgresql/postgresql-16.15-1-windows-x64-binaries.zip",
+  "sha256": "25e6fcdfb8caec38691bf461125e7564508760666f7b8e5dc6a5f0818f58f81e",
+  "sourcePage": "https://www.enterprisedb.com/download-postgresql-binaries",
+  "license": "https://www.postgresql.org/about/licence/",
+  "checksumProvenance": "SHA-256 calculado no arquivo obtido por HTTPS da EDB durante a preparação desta versão; não é apresentado como checksum assinado pelo fornecedor."
+}

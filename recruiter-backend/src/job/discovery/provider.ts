@@ -1,4 +1,4 @@
-import type { JobSearchResult } from '@recruit/shared';
+import type { JobSearchResult, JobPreferences } from '@recruit/shared';
 
 /**
  * Uma fonte de vagas.
@@ -22,11 +22,31 @@ export interface DiscoverySource {
    * vaga precisa de bem mais fôlego que uma que devolve o board inteiro.
    */
   readonly deadlineMs?: number;
+  readonly issues?: readonly string[];
 
   fetch(query: DiscoveryQuery): Promise<JobSearchResult[]>;
 }
 
+export function settledJobs(
+  results: PromiseSettledResult<JobSearchResult[]>[],
+  labels: readonly string[],
+  issues: string[],
+): JobSearchResult[] {
+  return results.flatMap((result, index) => {
+    if (result.status === 'fulfilled') return result.value;
+    issues.push(
+      `${labels[index]}: ${result.reason instanceof Error ? result.reason.message : 'falha na consulta'}`,
+    );
+    return [];
+  });
+}
+
 export interface DiscoveryQuery {
+  /** Optional profile context for portals with city and modality search fields. */
+  profileLocation?: string | null;
+  workModels?: JobSearchResult['workModel'][];
+  seniorities?: JobPreferences['seniorities'];
+  titleIncludes?: string[];
   /** Texto livre. As fontes por busca usam; as por empresa ignoram. */
   q?: string;
 

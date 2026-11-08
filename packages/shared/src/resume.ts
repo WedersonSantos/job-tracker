@@ -89,6 +89,8 @@ export const profileLinksSchema = z.object({
   linkedin: externalUrlSchema.nullable(),
   github: externalUrlSchema.nullable(),
   website: externalUrlSchema.nullable(),
+  /** Default preserves existing profiles and frozen resume versions. */
+  presentationVideo: externalUrlSchema.nullable().default(null),
 });
 
 export type ProfileLinks = z.infer<typeof profileLinksSchema>;
@@ -97,6 +99,7 @@ export const emptyLinks: ProfileLinks = {
   linkedin: null,
   github: null,
   website: null,
+  presentationVideo: null,
 };
 
 /** Idade derivada da data de nascimento, nunca armazenada. */

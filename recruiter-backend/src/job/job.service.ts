@@ -45,7 +45,7 @@ export class JobService {
   }): Promise<DiscoverResult> {
     const profile = await this.prisma.profile.findUnique({
       where: { id: params.profileId },
-      select: { resume: true, jobPreferences: true },
+      select: { resume: true, jobPreferences: true, location: true },
     });
 
     if (!profile) {
@@ -62,6 +62,7 @@ export class JobService {
       q: params.q,
       expanded: params.expanded,
       skills: resume.success ? resume.data.skills : [],
+      profileLocation: profile.location,
       // Preferência corrompida ou ausente cai no padrão em vez de derrubar a
       // busca — mesmo tratamento que `links` e `resume` já recebem.
       preferences: preferences.success

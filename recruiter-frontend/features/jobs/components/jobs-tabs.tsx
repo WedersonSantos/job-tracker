@@ -16,10 +16,11 @@ export function JobsTabs({ savedCount }: { savedCount: number }) {
   const tabs = [
     { href: "/vagas", label: "Buscar", count: null as number | null },
     { href: "/vagas/salvas", label: "Minhas vagas", count: savedCount },
+    { href: "/vagas/fontes", label: "Fontes da busca", count: null },
   ];
 
   return (
-    <nav aria-label="Vagas" className="flex items-center gap-1">
+    <nav aria-label="Vagas" className="flex flex-wrap items-center gap-1">
       {tabs.map((tab) => {
         const active = pathname === tab.href;
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { defaultJobPreferences, jobPreferencesSchema } from './job-preferences';
 import { profileLinksSchema, resumeSchema } from './resume';
+import { emptyFormFillDefaults, formFillDefaultsSchema } from './form-fill-defaults';
 
 /**
  * Perfil como a API o devolve. Não é espelho da tabela: `resume`, `links` e
@@ -36,6 +37,7 @@ export const profileDetailSchema = profileSchema.extend({
   // Com padrão: um backend sem a coluna ainda não derruba a tela de currículo
   // por causa de um campo ausente.
   preferences: jobPreferencesSchema.default(defaultJobPreferences),
+  formFillDefaults: formFillDefaultsSchema.default(emptyFormFillDefaults),
   updatedAt: z.iso.datetime(),
 });
 
@@ -51,6 +53,7 @@ export const updateProfileSchema = z.strictObject({
   links: profileLinksSchema.optional(),
   resume: resumeSchema.optional(),
   preferences: jobPreferencesSchema.optional(),
+  formFillDefaults: formFillDefaultsSchema.optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

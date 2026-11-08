@@ -24,3 +24,13 @@ storageState.json
 *.log
 npm-debug.log*
 .DS_Store
+
+# Arquivos privados e saídas locais do instalador/testes
+/tmp/
+/data/
+/runtime/
+/installation.json
+*.tsbuildinfo
+*.key
+.env.*
+!.env.example

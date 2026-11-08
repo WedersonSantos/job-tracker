@@ -21,7 +21,7 @@ import { parseEach } from '../provider';
  * PJ, estágio, temporário), o que nenhum ATS internacional consegue dar.
  */
 
-const ENDPOINT = 'https://employability-portal.gupy.io/api/v1/jobs';
+const ENDPOINT = 'https://portal.gupy.io/api/job-search/jobs';
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 2;
@@ -63,7 +63,9 @@ export class GupySource implements DiscoverySource {
 
         const payload = gupyPageSchema.safeParse(await fetchPublicJson(url));
 
-        if (!payload.success || payload.data.data.length === 0) {
+        if (!payload.success)
+          throw new Error('Gupy: formato da resposta mudou.');
+        if (payload.data.data.length === 0) {
           break;
         }
 

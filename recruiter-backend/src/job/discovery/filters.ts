@@ -4,6 +4,8 @@ import type {
   Seniority,
 } from '@recruit/shared';
 import { countryFromText, fold } from './normalize';
+import { matchesProfileLocation } from './location-eligibility';
+import { workModelEvidence } from './work-model-evidence';
 
 /**
  * Os cortes que decidem se uma vaga existe para você.
@@ -41,13 +43,14 @@ export function matchesTerm(job: JobSearchResult, term?: string): boolean {
  * Corte pelas preferências.
  *
  * Preferência ELIMINA, currículo ORDENA — são coisas diferentes de propósito.
- * E campo que a vaga não declarou PASSA: cortar em silêncio esconde vaga boa
- * por defeito do portal, e o usuário não fica sabendo do que perdeu.
+ * Campos ausentes normalmente passam. A modalidade é exceção quando há uma
+ * seleção restrita: desconhecido não comprova remoto nem presencial local.
  */
 export function matches(
   job: JobSearchResult,
   preferences: JobPreferences,
   now: Date = new Date(),
+  profileLocation?: string | null,
 ): boolean {
   if (tooOldLinkedIn(job, preferences, now)) {
     return false;
@@ -66,12 +69,12 @@ export function matches(
     return false;
   }
 
-  if (
-    job.workModel !== null &&
-    preferences.workModels.length > 0 &&
-    !preferences.workModels.includes(job.workModel)
-  ) {
-    return false;
+  const model = workModelEvidence(job).model;
+  if (preferences.workModels.length > 0) {
+    if (model && !preferences.workModels.includes(model)) return false;
+    // A restricted selection needs evidence: unknown does not mean remote
+    // (nor does it prove an onsite job is in the candidate's city).
+    if (!model && preferences.workModels.length < 3) return false;
   }
 
   if (
@@ -90,7 +93,10 @@ export function matches(
     return false;
   }
 
-  return withinScope(job, preferences);
+  return (
+    withinScope(job, preferences) &&
+    matchesProfileLocation(job, profileLocation)
+  );
 }
 
 /**

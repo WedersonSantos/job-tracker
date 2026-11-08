@@ -40,7 +40,14 @@ const MAX_JSON_BYTES = 4 * 1024 * 1024;
 
 const ALLOWED_CONTENT = ['text/html', 'application/xhtml+xml', 'text/plain'];
 
-export class FetchError extends Error {}
+export class FetchError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
 
 interface Ipv4Range {
   base: number;
@@ -250,12 +257,16 @@ export interface FetchedPage {
   html: string;
 }
 
-export async function fetchPublicPage(rawUrl: string): Promise<FetchedPage> {
+export async function fetchPublicPage(
+  rawUrl: string,
+  options?: { timeoutMs?: number },
+): Promise<FetchedPage> {
   const { finalUrl, body } = await fetchCapped(rawUrl, {
     accept: 'text/html,application/xhtml+xml',
     allowedContent: ALLOWED_CONTENT,
     maxBytes: MAX_BYTES,
     wrongTypeMessage: 'O link não aponta para uma página HTML.',
+    timeoutMs: options?.timeoutMs,
   });
 
   return { finalUrl, html: body };
@@ -272,12 +283,18 @@ export async function fetchPublicPage(rawUrl: string): Promise<FetchedPage> {
  * Devolve `unknown` de propósito. Quem chama valida com Zod: JSON de terceiro
  * é dado externo, mesmo vindo de host conhecido (seção 5 do CLAUDE.md).
  */
-export async function fetchPublicJson(rawUrl: string): Promise<unknown> {
+/** Public routing identifiers only; never cookies or authentication headers. */
+type PublicJsonHeaders = { 'x-tenant'?: string; 'x-inhire-client'?: string };
+export async function fetchPublicJson(
+  rawUrl: string,
+  headers?: PublicJsonHeaders,
+): Promise<unknown> {
   const { body } = await fetchCapped(rawUrl, {
     accept: 'application/json',
     allowedContent: ['application/json'],
     maxBytes: MAX_JSON_BYTES,
     wrongTypeMessage: 'A resposta não é JSON.',
+    headers,
   });
 
   try {
@@ -288,10 +305,12 @@ export async function fetchPublicJson(rawUrl: string): Promise<unknown> {
 }
 
 interface FetchOptions {
+  timeoutMs?: number;
   accept: string;
   allowedContent: string[];
   maxBytes: number;
   wrongTypeMessage: string;
+  headers?: PublicJsonHeaders;
 }
 
 async function fetchCapped(
@@ -316,7 +335,7 @@ async function fetchCapped(
         // Manual: cada salto passa pela validação de novo. Seguir automático
         // deixaria o redirecionamento contornar tudo acima.
         redirect: 'manual',
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
         headers: {
           // Sem cookies, sem credenciais, sem cabeçalho de origem.
           // ASCII puro: caractere acentuado aqui leva 403 de WAF — a Ashby
@@ -324,6 +343,7 @@ async function fetchCapped(
           'User-Agent': 'job-tracker/1.0 (+personal job tracker)',
           Accept: options.accept,
           'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          ...options.headers,
         },
       });
     } catch (error) {
@@ -346,7 +366,10 @@ async function fetchCapped(
     }
 
     if (!response.ok) {
-      throw new FetchError(`A página respondeu ${response.status}.`);
+      throw new FetchError(
+        `A página respondeu ${response.status}.`,
+        response.status,
+      );
     }
 
     const contentType = response.headers.get('content-type') ?? '';

@@ -40,10 +40,18 @@ export function canonicalJobUrl(rawUrl: string): string | null {
     return null;
   }
 
-  // A query aqui é sempre rastreamento (`gh_src`, `jobBoardSource`); nenhuma
-  // fonte identifica a vaga por parâmetro. Se alguma passar a identificar,
-  // isto vira uma lista de parâmetros preservados.
+  // Preserve Glassdoor's listing identity; other query parameters are tracking.
+  const glassdoor = /(^|\.)glassdoor\.com(?:\.br)?$/i.test(url.hostname);
+  const listingId = glassdoor ? url.searchParams.get('jl') : null;
+  if (
+    glassdoor &&
+    url.pathname === '/job-listing/j' &&
+    !/^\d+$/.test(listingId ?? '')
+  )
+    return null;
   url.search = '';
+  if (listingId && /^\d+$/.test(listingId))
+    url.searchParams.set('jl', listingId);
   url.hash = '';
   url.protocol = 'https:';
   url.hostname =

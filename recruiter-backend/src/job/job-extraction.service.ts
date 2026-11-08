@@ -24,6 +24,7 @@ import type { JobSearchResult } from '@recruit/shared';
 import type { Env } from '../config/env';
 import { htmlToText } from './html-to-text';
 import { FetchError, fetchPublicPage } from './safe-fetch';
+import { pageAvailability } from './discovery/job-availability';
 
 /** Haiku para extração de dados de vaga — seção 4 do CLAUDE.md. */
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -86,6 +87,13 @@ export class JobExtractionService {
       });
     }
 
+    const availability = pageAvailability(page.html, page.finalUrl);
+    if (availability.state === 'inactive')
+      throw new BadRequestException({
+        error: 'Bad Request',
+        message:
+          'Esta vaga foi encerrada ou expirou no portal. Ela não será adicionada aos resultados.',
+      });
     const text = htmlToText(page.html, MAX_TEXT_CHARS);
 
     if (text.length < 200) {
@@ -105,6 +113,7 @@ export class JobExtractionService {
       url: page.finalUrl,
       source: new URL(page.finalUrl).hostname.replace(/^www\./, ''),
       postedAt: null,
+      availability: { ...availability, state: availability.state },
     };
   }
 

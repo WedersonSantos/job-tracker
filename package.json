@@ -9,6 +9,14 @@
     "packages/*"
   ],
   "scripts": {
+    "build:extension": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-extension.ps1",
+    "build:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1",
+    "build:installer": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/build-installer.ps1",
+    "test:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/verify.ps1",
+    "test:postgres": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/verify-native-postgres.ps1",
+    "test:desktop": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/verify-desktop.ps1",
+    "test:installer": "node --test scripts/release-files.test.cjs && powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/verify-installer.ps1 && powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/verify-lifecycle.ps1",
+    "start:windows": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '.\\dist\\windows\\JobTracker.exe'\"",
     "dev:web": "npm run dev -w recruiter-frontend",
     "dev:worker": "npm run start:dev -w recruiter-backend",
     "build:shared": "npm run build -w @recruit/shared",

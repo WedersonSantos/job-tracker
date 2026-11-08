@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><title>Job Tracker</title><link rel="stylesheet" href="popup.css">
+<body><h1>Preencher candidatura</h1><p id="version"></p><p>Escolha o currículo. A extensão seguirá os botões de candidatura até encontrar o formulário.</p>
+<label for="request">Dados do currículo</label><select id="request"></select>
+<p id="destination"></p><button id="fill" disabled>Abrir formulário e preencher</button><button id="stop" hidden>Parar automação</button><p id="status" role="status">Conectando ao aplicativo local…</p><p>A extensão preenche e continua entre etapas válidas. Se faltar uma resposta obrigatória, complete e avance: ela retomará na próxima página. O envio final é seu. Na primeira utilização, permita o acesso HTTPS solicitado pelo Chrome.</p><script type="module" src="popup.js"></script></body></html>

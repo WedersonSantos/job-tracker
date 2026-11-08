@@ -3,7 +3,8 @@ import type { Env } from '../../config/env';
 /**
  * Empresas cujo board público é lido a cada rodada da descoberta.
  *
- * Vem do `.env`, não do código. A lista diz em que empresas você tem
+ * Configuração inicial do `.env`; SourceSettingsService dá prioridade à lista
+ * salva na tela de fontes. A lista diz em que empresas você tem
  * interesse — isso é seu, não do repositório —, e cada pessoa que clona o
  * projeto monta a dela. Vazia por padrão: Gupy, agregadores remotos, portais
  * brasileiros e os alertas do LinkedIn funcionam sem lista nenhuma.

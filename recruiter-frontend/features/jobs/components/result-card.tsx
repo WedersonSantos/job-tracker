@@ -146,7 +146,10 @@ export function ResultCard({
         <div className="cine-glass flex h-full flex-col gap-3 rounded-2xl p-5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-col gap-1">
-              <span className="truncate font-[family-name:var(--font-display)] text-base font-semibold" title={result.company}>
+              <span
+                className="truncate font-[family-name:var(--font-display)] text-base font-semibold"
+                title={result.company}
+              >
                 {result.company}
               </span>
               {/* Duas linhas no máximo: sem isto cada card da grade tem uma altura
@@ -167,6 +170,16 @@ export function ResultCard({
           </div>
 
           <JobTags job={result} />
+          {result.availability && (
+            <p
+              className="text-xs text-zinc-500 dark:text-zinc-400"
+              title={`${result.availability.reason} Verificado em ${new Date(result.availability.checkedAt).toLocaleString("pt-BR")}.`}
+            >
+              {result.availability.state === "active"
+                ? "Prazo de candidatura vigente"
+                : "Disponibilidade não confirmada"}
+            </p>
+          )}
           <StackTags stack={result.stack} max={4} />
 
           {salary && (

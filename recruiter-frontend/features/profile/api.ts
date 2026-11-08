@@ -5,7 +5,10 @@ import {
   profileListSchema,
   profileSchema,
   updateProfileSchema,
+  resumeFileInfoSchema,
+  resumeImportSchema,
 } from "@recruit/shared";
+import type { UploadResumeFileInput } from "@recruit/shared";
 import type {
   CreateProfileInput,
   Profile,
@@ -63,7 +66,9 @@ export async function listProfiles(): Promise<Profile[]> {
   return profileListSchema.parse(await request("/profiles"));
 }
 
-export async function createProfile(input: CreateProfileInput): Promise<Profile> {
+export async function createProfile(
+  input: CreateProfileInput,
+): Promise<Profile> {
   const payload = createProfileSchema.parse(input);
 
   return profileSchema.parse(
@@ -86,6 +91,35 @@ export async function updateProfile(
     await request(`/profiles/${id}`, {
       method: "PATCH",
       body: JSON.stringify(updateProfileSchema.parse(input)),
+    }),
+  );
+}
+
+export async function getResumeFile(id: string) {
+  return resumeFileInfoSchema
+    .nullable()
+    .parse(await request(`/profiles/${id}/resume-file`));
+}
+export async function uploadResumeFile(
+  id: string,
+  input: UploadResumeFileInput,
+) {
+  return resumeFileInfoSchema.parse(
+    await request(`/profiles/${id}/resume-file`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  );
+}
+export async function removeResumeFile(id: string) {
+  await request(`/profiles/${id}/resume-file`, { method: "DELETE" });
+}
+
+export async function importResumeFile(id: string) {
+  return resumeImportSchema.parse(
+    await request(`/profiles/${id}/resume-file/import`, {
+      method: "POST",
+      body: "{}",
     }),
   );
 }

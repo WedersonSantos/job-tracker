@@ -29,6 +29,7 @@ const WANTED = new Set([
 
 export interface ImportOutcome {
   resume: Resume;
+  fullName: string | null;
   /** Dados pessoais que o Profile guarda fora do currículo. */
   headline: string | null;
   location: string | null;
@@ -116,6 +117,7 @@ export async function parseLinkedInExport(file: File): Promise<ImportOutcome> {
 
   return {
     resume,
+    fullName: [pick(profile, "First Name"), pick(profile, "Last Name")].filter(Boolean).join(" ") || null,
     headline: pick(profile, "Headline"),
     location: pick(profile, "Geo Location"),
     missing,

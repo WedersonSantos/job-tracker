@@ -3,6 +3,8 @@ import type { JobSearchResult } from '@recruit/shared';
 import { fetchPublicPage } from '../../safe-fetch';
 import { jobPostingToResult, readJobPosting } from '../json-ld';
 import type { DiscoveryQuery, DiscoverySource } from '../provider';
+import { settledJobs } from '../provider';
+import { infoJobsWorkModel } from './infojobs-details';
 
 /**
  * Portais brasileiros sem API, lidos pelo JSON-LD da página da vaga.
@@ -55,6 +57,7 @@ const DEFAULT_TERMS = ['desenvolvedor'];
 
 export class BrazilPortalsSource implements DiscoverySource {
   readonly name = 'portais-br';
+  readonly issues: string[] = [];
 
   /** Uma ida por vaga: precisa de bem mais fôlego que uma API de board. */
   readonly deadlineMs = 30_000;
@@ -62,6 +65,7 @@ export class BrazilPortalsSource implements DiscoverySource {
   private readonly logger = new Logger(BrazilPortalsSource.name);
 
   async fetch(query: DiscoveryQuery): Promise<JobSearchResult[]> {
+    this.issues.length = 0;
     // Só com a busca ampliada marcada. É o caminho lento e o usuário escolheu.
     if (!query.expanded) {
       return [];
@@ -73,8 +77,10 @@ export class BrazilPortalsSource implements DiscoverySource {
       PORTALS.map((portal) => this.readPortal(portal, term)),
     );
 
-    return portals.flatMap((portal) =>
-      portal.status === 'fulfilled' ? portal.value : [],
+    return settledJobs(
+      portals,
+      PORTALS.map((p) => p.name),
+      this.issues,
     );
   }
 
@@ -100,7 +106,9 @@ export class BrazilPortalsSource implements DiscoverySource {
         `${portal.name}: listagem sem links de vaga — o padrão pode ter mudado.`,
       );
 
-      return [];
+      throw new Error(
+        `${portal.name}: listagem sem links reconhecidos; o formato pode ter mudado.`,
+      );
     }
 
     const found: JobSearchResult[] = [];
@@ -115,6 +123,8 @@ export class BrazilPortalsSource implements DiscoverySource {
       for (const page of pages) {
         if (page.status === 'fulfilled' && page.value) {
           found.push(page.value);
+        } else if (page.status === 'rejected') {
+          this.issues.push(`${portal.name}: falha ao ler uma página de vaga.`);
         }
       }
 
@@ -135,7 +145,11 @@ export class BrazilPortalsSource implements DiscoverySource {
 
     // Sem marcação, a vaga é descartada em vez de virar palpite. A extração
     // pelo Claude continua disponível para o link colado à mão.
-    return posting ? jobPostingToResult(posting, page.finalUrl, source) : null;
+    if (!posting) return null;
+    const result = jobPostingToResult(posting, page.finalUrl, source);
+    if (result && source === 'infojobs')
+      result.workModel = infoJobsWorkModel(page.html) ?? result.workModel;
+    return result;
   }
 }
 

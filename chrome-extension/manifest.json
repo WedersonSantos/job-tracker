@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Job Tracker — preencher currículo",
+  "version": "1.12.1",
+  "description": "Preenche a candidatura na aba escolhida usando os dados do Job Tracker local. Você revisa e envia.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "http://127.0.0.1:3333/*",
+    "http://127.0.0.1:3000/*",
+    "http://localhost:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1:3000/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3333/form-fill/chrome/open*"
+      ],
+      "js": ["app-bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Preencher com Job Tracker"
+  }
+}

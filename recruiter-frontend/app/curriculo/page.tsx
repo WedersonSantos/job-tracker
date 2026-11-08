@@ -1,4 +1,4 @@
-import { getProfileDetail } from "@/features/profile/api";
+import { getProfileDetail, getResumeFile } from "@/features/profile/api";
 import { ResumeForm } from "@/features/profile/components/resume-form";
 import { getSelectedProfile } from "@/features/profile/current-profile";
 
@@ -10,7 +10,10 @@ export default async function CurriculoPage() {
     return null;
   }
 
-  const profile = await getProfileDetail(selected.id);
+  const [profile, resumeFile] = await Promise.all([
+    getProfileDetail(selected.id),
+    getResumeFile(selected.id),
+  ]);
 
-  return <ResumeForm profile={profile} />;
+  return <ResumeForm profile={profile} resumeFile={resumeFile} />;
 }

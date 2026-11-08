@@ -100,6 +100,14 @@ export function JobDiscovery({
   }, []);
 
   const start = useCallback(() => {
+    // A new search must not mix a previous profile/city or keep its cursor.
+    runId.current += 1;
+    cursor.current = null;
+    setItems([]);
+    setTotal(null);
+    setFailed([]);
+    setCompleted(0);
+    setDemand(1);
     setError(null);
     setExhausted(null);
     setRunning(true);
@@ -107,8 +115,7 @@ export function JobDiscovery({
     setStartedAt(began.current);
     batches.current = 0;
     fetchMs.current = 0;
-    askForMore();
-  }, [askForMore]);
+  }, []);
 
   /** Critério novo, ordem nova: a lista acumulada não vale mais. */
   const applyFilters = (next: JobPreferences) => {
@@ -286,9 +293,7 @@ export function JobDiscovery({
             >
               <span
                 className={`size-2 rounded-full ${
-                  running
-                    ? "animate-pulse bg-white"
-                    : "bg-zinc-950/60"
+                  running ? "animate-pulse bg-white" : "bg-zinc-950/60"
                 }`}
               />
               {running ? "Parar busca" : "Iniciar busca"}

@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import type { NextFunction, Request, Response } from 'express';
+import { json } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -10,6 +11,16 @@ import type { Env } from './config/env';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService<Env, true>);
+  const regularJson = json({ limit: '100kb' });
+  const resumeJson = json({ limit: '8mb' });
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const parser = /^\/profiles\/[^/]+\/resume-file(?:\?|$)/.test(
+      request.originalUrl,
+    )
+      ? resumeJson
+      : regularJson;
+    parser(request, response, next);
+  });
 
   app.useGlobalFilters(new AllExceptionsFilter());
 

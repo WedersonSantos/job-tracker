@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { JobSearchResult } from '@recruit/shared';
+import { ashbyBoardReference, type JobSearchResult } from '@recruit/shared';
+import { loadDepartmentNames } from '../ashby-department';
 import { fetchPublicJson } from '../../safe-fetch';
 import { canonicalJobUrl } from '../canonical-url';
 import {
@@ -9,7 +10,7 @@ import {
   toIsoDate,
 } from '../normalize';
 import type { DiscoverySource } from '../provider';
-import { parseEach } from '../provider';
+import { parseEach, settledJobs } from '../provider';
 
 /**
  * Ashby — o formato mais bem estruturado das três fontes por empresa.
@@ -44,32 +45,45 @@ const ashbyBoardSchema = z.object({ jobs: z.array(z.unknown()) });
 
 export class AshbySource implements DiscoverySource {
   readonly name = 'ashby';
+  readonly issues: string[] = [];
 
   /** Os slugs vêm do `.env` — ver `watchlist.ts`. */
   constructor(private readonly boards: readonly string[]) {}
 
   async fetch(): Promise<JobSearchResult[]> {
+    this.issues.length = 0;
     const boards = await Promise.allSettled(
       this.boards.map(async (slug) => {
+        const reference = ashbyBoardReference(slug);
         const payload = ashbyBoardSchema.safeParse(
           await fetchPublicJson(
-            `https://api.ashbyhq.com/posting-api/job-board/${slug}`,
+            `https://api.ashbyhq.com/posting-api/job-board/${reference.slug}`,
           ),
         );
 
         if (!payload.success) {
-          return [];
+          throw new Error('Formato da resposta mudou: lista de vagas ausente.');
         }
 
-        return parseEach(payload.data.jobs, (raw) => toResult(raw, slug)).ok;
+        const names = reference.departmentId
+          ? await loadDepartmentNames(reference.slug, reference.departmentId)
+          : null;
+        const jobs = names
+          ? payload.data.jobs.filter((raw) => {
+              if (!raw || typeof raw !== 'object') return false;
+              const job = raw as { department?: string; team?: string };
+              return (
+                names.has(job.team ?? '') || names.has(job.department ?? '')
+              );
+            })
+          : payload.data.jobs;
+        return parseEach(jobs, (raw) => toResult(raw, reference.slug)).ok;
       }),
     );
 
     // allSettled e nao all: um board acima do teto de tamanho, fora do ar ou
     // com slug morto some da rodada — sem levar os outros junto.
-    return boards.flatMap((board) =>
-      board.status === 'fulfilled' ? board.value : [],
-    );
+    return settledJobs(boards, this.boards, this.issues);
   }
 }
 

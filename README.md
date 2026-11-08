@@ -38,7 +38,7 @@ sugere o novo status. Você confirma com um clique.
 Sem a chave, tudo da primeira metade funciona. Com ela, o Claude entra só onde
 você pede, e o que ele propõe passa pelo seu clique antes de virar dado.
 
-## Requisitos
+## Requisitos para desenvolvimento
 
 - **Node.js 20.9 ou mais novo** e npm
 - **Docker**, para o Postgres
@@ -83,6 +83,24 @@ npm run dev:web      # telas em http://127.0.0.1:3000
 
 Abra **http://127.0.0.1:3000**.
 
+### Aplicativo Windows e extensão Chrome
+
+Para gerar uma instalação nova para outra pessoa, execute `npm run build:installer`.
+O arquivo `dist\installer-postgresql\JobTracker-Setup.exe` prepara a cópia do programa por
+usuário e gera a extensão na máquina de destino. Não copie sua pasta de uso nem
+seus arquivos `.env`. Veja [distribuição e privacidade](windows/DISTRIBUICAO.md).
+
+Depois da configuração local, execute `npm run build:windows` e abra
+`dist\windows\JobTracker.exe`. O painel permite iniciar os serviços, abrir a
+aplicação no navegador e gerar a extensão do Chrome com **Gerar extensão**.
+Para gerar apenas a extensão, execute `npm run build:extension`.
+
+Novas instalações Windows incluem PostgreSQL privado e dispensam Docker;
+Node.js, Visual C++ x64 e WebView2 podem ser preparados pelo instalador. O atalho
+inicia o painel de serviços e abre as telas no navegador padrão quando estiverem prontas. Mantenha o painel aberto durante o uso. O desenvolvimento
+mantém a configuração Docker. A extensão é carregada em `chrome://extensions`, pelo
+modo de desenvolvedor. Veja [instruções do painel Windows](windows/README.md).
+
 ### Primeiros passos no app
 
 1. **Escolha ou crie um perfil.** Perfil é só um seletor: dá para separar, por
@@ -95,6 +113,17 @@ Abra **http://127.0.0.1:3000**.
    descarte o resto.
 4. **Registre candidaturas** em *Candidaturas*, ou deixe que venham dos
    emails (veja abaixo).
+
+A descoberta usa o campo **Local**, em **Currículo**, como cidade e estado do
+perfil (por exemplo, `Uberlândia, MG`). Vagas presenciais ou híbridas em outra
+cidade são descartadas quando a localização é reconhecida. Para presenciais,
+é obrigatório confirmar uma cidade compatível: vagas sem cidade e perfis sem
+cidade cadastrada não passam. Apenas o estado ou país não é suficiente.
+Exigências explícitas
+de residência na descrição e nos requisitos também são consideradas, mesmo
+quando a vaga está marcada como remota. A sede da empresa em outra cidade, por
+si só, não elimina uma vaga remota. Fora das presenciais, localização ausente ou ambígua continua
+aparecendo: o filtro não calcula distâncias nem interpreta todo texto possível.
 
 ## Configuração opcional
 
@@ -163,9 +192,27 @@ curl -X POST -H 'Content-Type: application/json' \
 
 ### Empresas acompanhadas na descoberta
 
-Gupy, agregadores remotos, portais brasileiros e alertas do LinkedIn funcionam
-sem configurar nada. Para acompanhar também o board de empresas específicas no
-Greenhouse, Ashby ou Lever, liste os slugs, separados por vírgula:
+Em **Vagas → Fontes da busca**, cole links ou identificadores de murais do
+Greenhouse, Ashby e Lever, um por linha, e clique em **Validar e salvar murais**.
+Murais inválidos impedem a gravação e preservam a lista anterior. A configuração
+vale para todos os perfis e é aplicada nas próximas buscas, sem reiniciar.
+Links do Ashby com `ashby_department_id` preservam o filtro de departamento ou
+equipe. A página de carreiras da própria Ashby (`www.ashbyhq.com/careers`) também
+é aceita. Um filtro desconhecido ou que não possa ser resolvido gera aviso,
+em vez de ampliar silenciosamente a busca para todos os cargos.
+Links do Lever com `team`, como `https://jobs.lever.co/empresa?team=Technology`,
+também preservam a equipe selecionada, sem incluir os demais times.
+
+**Testar configuração salva** consulta as fontes com o termo `python`, incluindo
+os portais da busca ampliada. Mostra contagens antes dos filtros do perfil e
+distingue fontes não configuradas, sem vagas, com erro e com resultado parcial.
+O teste não sincroniza emails nem chama IA. A seção do LinkedIn indica quais
+campos IMAP faltam e como concluir a configuração local, sem mostrar credenciais.
+
+Os murais ficam em `~/.local/share/job-tracker/discovery-sources.json` (ou em
+`XDG_DATA_HOME`). Antes da primeira gravação pela tela, o app usa os valores do
+`.env` como configuração inicial. Exemplo de configuração manual:
+
 
 ```env
 DISCOVERY_GREENHOUSE_BOARDS=empresa-um,empresa-dois
@@ -174,18 +221,140 @@ DISCOVERY_LEVER_BOARDS=
 ```
 
 O slug é a parte do endereço do board: `boards.greenhouse.io/<slug>`,
-`jobs.ashbyhq.com/<slug>`, `jobs.lever.co/<slug>`. Slug errado não dá erro, a
-empresa só não aparece; confira abrindo o endereço no navegador. Prefira
+`jobs.ashbyhq.com/<slug>`, `jobs.lever.co/<slug>`. A tela valida a resposta do
+mural, e erros posteriores aparecem no diagnóstico por fonte. Prefira
 empresas com vagas remotas ou no Brasil: um board com centenas de vagas
 presenciais no exterior enche a fila com o que você não procura.
 
+**Pesquisa automática no navegador:** Jobbol, Solutis/InHire, Uberlândia
+Inovadora e os murais Ashby/Lever configurados abrem o Chrome e interagem com
+seus filtros. O navegador de pesquisa tem perfil próprio em
+`~/.local/share/job-tracker/search-browser-profile/`, separado das candidaturas.
+Os anexos HTML são referências para os seletores; não são o acervo da pesquisa.
+Cada pesquisa sem cursor visita as fontes novamente. A paginação da mesma
+pesquisa reaproveita o lote por até 15 minutos, separado por localização e
+preferências, evitando repetir a navegação a cada página de resultados.
+
+Antes de exibir cada lote, o programa consulta os links e exclui anúncios com
+aviso explícito de encerramento, prazo `JobPosting.validThrough` vencido ou
+resposta HTTP 404/410. Vagas removidas são substituídas por outros resultados
+sem pular itens na paginação. A consulta tem concorrência limitada, prazo
+de 20 segundos por lote e cache de 60 segundos. HTTP 403/429, CAPTCHA, falhas
+de rede e páginas sem evidência suficiente aparecem como **Disponibilidade
+não confirmada**, sem serem tratadas como vagas ativas ou encerradas.
+No Glassdoor, a verificação tenta também ler a página no Chrome de pesquisa;
+o identificador `jl` é preservado no link. Links colados para extração também
+são recusados quando o HTML informa encerramento, antes de consultar a IA.
+Essa verificação não remove vagas já salvas e não garante que uma vaga ainda
+esteja aberta no momento de uma candidatura posterior.
+
+- **Jobbol:** preenche cargo, seleciona a sugestão de cidade/UF, clica Buscar
+  e aplica Home Office ou Híbrida quando solicitado. Remotas usam pesquisa
+  nacional sem a cidade padrão do portal. Sem termo, usa o primeiro cargo
+  configurado no perfil (ou desenvolvedor). Percorre até cinco páginas,
+  remove propagandas e duplicatas e lê data e localização dos cartões.
+- **Solutis:** preenche o nome da vaga e seleciona modalidade e localização
+  quando disponíveis. Percorre o carregamento progressivo da lista. Os dados
+  da resposta carregada pelo próprio navegador enriquecem somente os links
+  exibidos após filtrar; não é uma segunda pesquisa independente por API.
+- **Uberlândia Inovadora:** seleciona Vaga, pesquisa cargo/empresa/stack e
+  seleciona as senioridades. Especialista corresponde a Sênior e Liderança a
+  Lead no app. Entradas apenas com email ficam fora da importação.
+- **Ashby/Lever:** seleciona departamento/equipe dos murais configurados e
+  modalidade quando oferecida. A API enriquece somente as vagas que o navegador
+  exibiu após os filtros. Continua sendo necessário configurar as empresas.
+
+Filtros indisponíveis no site, país, regras de residência, salário e demais
+preferências são conferidos no programa antes de mostrar as vagas. Campos
+ausentes permanecem desconhecidos. Um CAPTCHA ou bloqueio é informado no
+diagnóstico, nunca resolvido automaticamente nem tratado como zero vagas.
+Quando o filtro restringe modalidades (por exemplo, apenas remotas ou apenas
+presenciais), anúncios sem evidência de modalidade ficam fora da recomendação.
+Título, localização e declarações explícitas sobre o trabalho na descrição e
+nos requisitos complementam o campo estruturado. Presenciais exigem cidade
+compatível com o currículo, incluindo a UF quando informada; só informar o
+mesmo estado ou país não é suficiente. Menções genéricas de benefícios para
+vários regimes não definem a modalidade da vaga.
+A aba que pediu verificação fica aberta no Chrome de pesquisa para conclusão
+manual e uma nova tentativa. As demais abas de pesquisa são fechadas ao terminar.
+
 ### Preenchimento de formulário
+
+O botão **Preencher formulário** primeiro lista os perfis normais do Chrome
+(por exemplo, Seu Chrome e Carlos). Ao escolher um deles, a vaga abre no
+Chrome habitual; janelas já abertas desse perfil são reaproveitadas. O login
+do Google acontece na sua sessão normal. Para preencher nessa mesma aba,
+carregue uma vez a extensão local da pasta `chrome-extension/`, seguindo
+`chrome-extension/LEIA-ME.md`. A extensão recebe os dados do pedido local
+somente quando você escolhe a candidatura e clica em **Abrir formulário e preencher**.
+O Chrome pede permissão opcional para sites HTTPS para acompanhar mudanças de
+domínio entre o portal e a empresa. A extensão segue até quatro botões de
+candidatura, incluindo **Candidatar-se no site da empresa**, e preenche ao
+encontrar o formulário. Login e CAPTCHA ficam com você. O envio final é manual.
+Pedidos expiram em dez minutos e são perdidos quando o backend reinicia.
+Ela preenche campos reconhecidos e anexa o PDF quando identifica um único
+campo de currículo; não envia a candidatura. Iframes externos não são cobertos
+por esta primeira versão. A extensão precisa estar instalada no perfil escolhido.
+No Google Forms, cada etapa é reconhecida independentemente de nome e email;
+os títulos das perguntas e `aria-labelledby` identificam os campos. O nível de
+inglês usa somente o idioma cadastrado e as opções de tecnologias usam somente
+competências salvas no currículo. Perguntas sem resposta configurada ficam
+para revisão. Continuar/Avançar/Próxima avançam automaticamente após conferir
+campos obrigatórios e validações. Se precisar responder algo, complete e avance
+manualmente: a extensão retoma na próxima etapa, mesmo em navegação sem mudança
+de URL. O progresso autorizado é recuperável em `chrome.storage.session`, sem
+guardar respostas ou PDF, e pode ser cancelado em Parar automação. Enviar,
+Finalizar e outros controles de conclusão nunca são acionados automaticamente.
+
+O preenchimento pela interface usa somente os perfis habituais e a extensão.
+O fluxo assistido legado descrito abaixo permanece apenas na API. O Chrome
+atual não permite usar o diretório normal de perfis como perfil Playwright;
+escolher um perfil nativo não conecta a depuração a ele nem copia suas sessões.
 
 Usa o Google Chrome instalado na máquina, com um perfil próprio guardado em
 `~/.local/share/job-tracker/`, fora da pasta do projeto. Se a plataforma
 pedir login, faça pelo próprio Chrome que abrir; a sessão fica salva nesse
 perfil. O app preenche nome, email, telefone e links, deixa em branco o que não
 reconhece e **nunca envia**: você revisa e clica em enviar.
+
+Em **Vagas → Salvas → Preencher formulário**, o app procura o formulário e,
+quando necessário, segue botões como “Candidate-se a esta vaga” e “Apply now”,
+inclusive quando abrem outra aba. O caminho tem um limite de quatro etapas.
+Ao encontrar o formulário, preenche os campos reconhecidos e deixa a janela
+aberta para revisão. Formulários incorporados em frames também são considerados.
+
+Se houver login, CAPTCHA ou uma etapa que o app não reconheça, ele avisa na
+tela e deixa você continuar manualmente no Chrome. Botões dentro de formulários
+não são acionados automaticamente, mesmo quando têm o texto “Apply”.
+
+Em **Currículo → Preenchimento de candidaturas**, configure o nome completo,
+a pretensão salarial e um resumo de experiência e clique em **Salvar**.
+O botão **Usar resumo do currículo** copia seu texto para essa resposta.
+As respostas são separadas por perfil e não entram no PDF do currículo.
+Pretensão e resumo vazios não são preenchidos. A pretensão é copiada literalmente,
+sem converter moeda ou período; use apenas números quando o formulário exigir.
+
+Em **Currículo → Dados pessoais**, salve também LinkedIn, GitHub, portfólio/site
+pessoal e o link do vídeo de apresentação. O preenchimento copia cada URL para
+seu campo correspondente quando reconhecido. O vídeo é compartilhado como link,
+sem baixar ou anexar um arquivo de vídeo. Confira se o recrutador consegue abrir
+o endereço. Links vazios não são preenchidos.
+
+Em **Currículo → PDF para candidaturas**, selecione um PDF de até 5 MB e clique
+em **Guardar e ler PDF**. O texto é lido localmente, sem chave de API, para
+preencher campos e seções vazios. Dados já preenchidos são preservados; revise
+e clique em **Salvar**. Para reler um anexo existente, use **Ler PDF salvo**.
+PDFs digitalizados como imagem precisam de OCR e não são lidos nesta versão.
+Uma cópia local fica associada ao perfil, fora do projeto,
+em `~/.local/share/job-tracker/resumes/` (ou em `XDG_DATA_HOME`, se definido).
+Você pode substituir ou remover o arquivo na mesma seção. O preenchimento
+seleciona o PDF em campos reconhecidos de currículo, inclusive campos ocultos
+e botões como **Carregar currículo**, e informa o resultado. Confira o anexo
+no portal antes de enviar; o portal pode aplicar validações adicionais.
+
+Botões **Entrar com o Google** e equivalentes em inglês são priorizados quando
+aparecem. A escolha de conta, senha e confirmações do Google ficam com você.
+Se o fluxo parar nessa etapa, conclua o login na janela aberta e tente novamente.
 
 ## Como funciona por dentro
 

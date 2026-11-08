@@ -1,14 +1,19 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /** Modalidade de trabalho da vaga. Espelha o enum WorkModel do Prisma. */
-export const workModelSchema = z.enum(['remoto', 'hibrido', 'presencial']);
+export const workModelSchema = z.enum(["remoto", "hibrido", "presencial"]);
 
 export type WorkModel = z.infer<typeof workModelSchema>;
 
 export const WORK_MODELS = workModelSchema.options;
 
 /** Espelha o enum ContractType do Prisma. */
-export const contractTypeSchema = z.enum(['clt', 'pj', 'estagio', 'temporario']);
+export const contractTypeSchema = z.enum([
+  "clt",
+  "pj",
+  "estagio",
+  "temporario",
+]);
 
 export type ContractType = z.infer<typeof contractTypeSchema>;
 
@@ -25,7 +30,7 @@ export const CONTRACT_TYPES = contractTypeSchema.options;
  */
 export const externalUrlSchema = z.url({
   protocol: /^https?$/,
-  error: 'Use um link http ou https',
+  error: "Use um link http ou https",
 });
 
 /**
@@ -54,6 +59,13 @@ export const jobSearchResultSchema = z.object({
   salaryCurrency: z.string().nullable(),
   weeklyHours: z.number().int().nullable(),
   postedAt: z.iso.datetime().nullable(),
+  availability: z
+    .object({
+      state: z.enum(["active", "unknown"]),
+      checkedAt: z.iso.datetime(),
+      reason: z.string(),
+    })
+    .optional(),
 });
 
 export type JobSearchResult = z.infer<typeof jobSearchResultSchema>;
@@ -61,16 +73,14 @@ export type JobSearchResult = z.infer<typeof jobSearchResultSchema>;
 export const jobSearchResultListSchema = z.array(jobSearchResultSchema);
 
 /** A vaga já registrada, com id. É o que a página de detalhe consome. */
-export const jobSchema = jobSearchResultSchema
-  .omit({ postedAt: true })
-  .extend({
-    id: z.string(),
-    url: z.string().nullable(),
-    source: z.string().nullable(),
-    extractedAt: z.iso.datetime().nullable(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime(),
-  });
+export const jobSchema = jobSearchResultSchema.omit({ postedAt: true }).extend({
+  id: z.string(),
+  url: z.string().nullable(),
+  source: z.string().nullable(),
+  extractedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
 
 export type Job = z.infer<typeof jobSchema>;
 
@@ -90,9 +100,7 @@ export const savedJobSchema = z.object({
   jobId: z.string(),
   savedAt: z.iso.datetime(),
   job: jobSchema,
-  application: z
-    .object({ id: z.string(), status: z.string() })
-    .nullable(),
+  application: z.object({ id: z.string(), status: z.string() }).nullable(),
 });
 
 export type SavedJob = z.infer<typeof savedJobSchema>;

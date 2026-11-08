@@ -6,6 +6,8 @@ import {
   jobPreferencesSchema,
   profileLinksSchema,
   resumeSchema,
+  emptyFormFillDefaults,
+  formFillDefaultsSchema,
 } from '@recruit/shared';
 import type {
   CreateProfileInput,
@@ -15,6 +17,7 @@ import type {
   ProfileLinks,
   Resume,
   UpdateProfileInput,
+  FormFillDefaults,
 } from '@recruit/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProfileModel } from '../generated/prisma/models';
@@ -81,6 +84,13 @@ export class ProfileService {
         row.id,
       ),
       updatedAt: row.updatedAt.toISOString(),
+      formFillDefaults: this.parseJson<FormFillDefaults>(
+        row.formFillDefaults,
+        formFillDefaultsSchema,
+        emptyFormFillDefaults,
+        'formFillDefaults',
+        row.id,
+      ),
     };
   }
 
@@ -136,6 +146,9 @@ export class ProfileService {
         ...(input.location !== undefined && { location: input.location }),
         ...(input.links !== undefined && { links: input.links }),
         ...(input.resume !== undefined && { resume: input.resume }),
+        ...(input.formFillDefaults !== undefined && {
+          formFillDefaults: input.formFillDefaults,
+        }),
         ...(input.preferences !== undefined && {
           jobPreferences: input.preferences,
         }),

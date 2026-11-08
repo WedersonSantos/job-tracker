@@ -1,4 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  HttpCode,
+} from '@nestjs/common';
+import {
+  uploadResumeFileSchema,
+  type UploadResumeFileInput,
+} from '@recruit/shared';
+import { ResumeFileService } from './resume-file.service';
 import { createProfileSchema, updateProfileSchema } from '@recruit/shared';
 import type {
   CreateProfileInput,
@@ -11,7 +25,35 @@ import { ProfileService } from './profile.service';
 
 @Controller('profiles')
 export class ProfileController {
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(
+    private readonly profileService: ProfileService,
+    private readonly resumeFiles: ResumeFileService,
+  ) {}
+
+  @Get(':id/resume-file')
+  resumeFile(@Param('id') id: string) {
+    return this.resumeFiles.info(id);
+  }
+
+  @Post(':id/resume-file')
+  saveResumeFile(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(uploadResumeFileSchema))
+    input: UploadResumeFileInput,
+  ) {
+    return this.resumeFiles.save(id, input);
+  }
+
+  @Delete(':id/resume-file')
+  @HttpCode(204)
+  removeResumeFile(@Param('id') id: string) {
+    return this.resumeFiles.remove(id);
+  }
+
+  @Post(':id/resume-file/import')
+  importResumeFile(@Param('id') id: string) {
+    return this.resumeFiles.import(id);
+  }
 
   @Get()
   list(): Promise<Profile[]> {

@@ -22,6 +22,8 @@ export const fillReportSchema = z.object({
   /** Campos que o código não reconheceu. Ficam com você. */
   skipped: z.array(z.string()),
   submitted: z.literal(false),
+  message: z.string().optional(),
+  attachment: z.object({ status: z.enum(['attached', 'skipped']), fileName: z.string(), message: z.string() }).optional(),
 });
 
 export type FillReport = z.infer<typeof fillReportSchema>;

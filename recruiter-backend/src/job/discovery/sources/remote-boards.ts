@@ -43,7 +43,7 @@ export class RemoteOkSource implements DiscoverySource {
     const payload = await fetchPublicJson('https://remoteok.com/api');
 
     if (!Array.isArray(payload)) {
-      return [];
+      throw new Error('RemoteOK: formato da resposta mudou.');
     }
 
     // O primeiro item é `{ legal, last_updated }`. Sem cargo, o schema já o
@@ -118,7 +118,7 @@ export class RemotiveSource implements DiscoverySource {
     );
 
     if (!payload.success) {
-      return [];
+      throw new Error('Remotive: formato da resposta mudou.');
     }
 
     return parseEach(payload.data.jobs, toRemotiveResult).ok;

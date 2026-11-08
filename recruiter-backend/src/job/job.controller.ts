@@ -31,13 +31,38 @@ import { ProfileExistsPipe } from '../common/pipes/profile-exists.pipe';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JobExtractionService } from './job-extraction.service';
 import { JobService } from './job.service';
+import { sourceSettingsSchema, type SourceSettings } from '@recruit/shared';
+import { SourceSettingsService } from './discovery/source-settings.service';
+import { DiscoveryService } from './discovery/discovery.service';
 
 @Controller('jobs')
 export class JobController {
   constructor(
     private readonly jobService: JobService,
     private readonly extractionService: JobExtractionService,
+    private readonly sourceSettings: SourceSettingsService,
+    private readonly discovery: DiscoveryService,
   ) {}
+
+  @Get('sources')
+  sources() {
+    return this.discovery.overview();
+  }
+
+  @Post('sources')
+  async saveSources(
+    @Body(new ZodValidationPipe(sourceSettingsSchema)) input: SourceSettings,
+  ) {
+    await this.sourceSettings.save(input);
+    this.discovery.invalidate();
+    return this.discovery.overview();
+  }
+
+  @Post('sources/check')
+  @HttpCode(HttpStatus.OK)
+  checkSources() {
+    return this.discovery.check();
+  }
 
   /**
    * Descoberta em lotes. Antes de `:id`, senão "discover" vira id de vaga.

@@ -34,6 +34,7 @@ export default async function BuscarVagasPage({
 
   return (
     <JobDiscovery
+      key={JSON.stringify([selected.id, params.q ?? "", profile.location])}
       profileId={selected.id}
       query={params.q ?? ""}
       preferences={profile.preferences}

@@ -33,7 +33,7 @@ const code = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job Tracker",
+  title: "JOB TRACKER",
   description: "Rastreador pessoal de candidaturas a vagas.",
 };
 

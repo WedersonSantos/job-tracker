@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import type {
-  FillReport, DiscoverResult, JobSearchResult } from "@recruit/shared";
+  FillReport,
+  DiscoverResult,
+  JobSearchResult,
+} from "@recruit/shared";
 import { createApplication } from "@/features/applications/api";
 import {
   ApiError,
@@ -13,6 +16,7 @@ import {
   saveJob,
   undismissJob,
   unsaveJob,
+  openNativeChrome,
 } from "@/features/jobs/api";
 import type { JobActionState } from "@/features/jobs/types";
 
@@ -191,6 +195,28 @@ export async function fillFormAction(
         error instanceof ApiError
           ? error.message
           : "Não consegui abrir o navegador.",
+    };
+  }
+}
+
+export async function openNativeChromeAction(
+  profileId: string,
+  url: string,
+  chromeProfile?: string,
+  prepareOnly = false,
+) {
+  try {
+    return {
+      status: "success",
+      ...(await openNativeChrome(profileId, url, chromeProfile, prepareOnly)),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof ApiError
+          ? error.message
+          : "Não consegui abrir o perfil do Chrome.",
     };
   }
 }

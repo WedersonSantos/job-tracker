@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia de uso — Job Tracker</title>
+<style>
+  :root { color-scheme: light; font: 16px/1.65 "Segoe UI", sans-serif; color: #242428; background: #fafafa; }
+  * { box-sizing: border-box; }
+  body { max-width: 1120px; margin: auto; padding: 40px 28px 72px; }
+  header { border-bottom: 1px solid #d4d4d8; padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 2.3rem; line-height: 1.15; margin: 0 0 14px; letter-spacing: -.03em; }
+  h2 { font-size: 1.5rem; line-height: 1.25; margin: 40px 0 16px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  p { margin: 0 0 16px; }
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 48px; }
+  nav { align-self: start; position: sticky; top: 24px; }
+  nav a { display: block; padding: 7px 0; }
+  a { color: #1645a1; text-underline-offset: 3px; }
+  a:focus-visible { outline: 2px solid #1645a1; outline-offset: 4px; }
+  main { max-width: 72ch; }
+  section { scroll-margin-top: 24px; }
+  section:first-child h2 { margin-top: 0; }
+  li { padding-left: 4px; margin-bottom: 10px; }
+  code { font-family: Consolas, monospace; font-size: .9em; overflow-wrap: anywhere; background: #eeeef0; padding: 2px 5px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; text-align: left; }
+  th, td { padding: 12px 10px; border-bottom: 1px solid #d4d4d8; vertical-align: top; }
+  th { background: #f0f0f2; }
+  .note { background: #eeeef0; padding: 18px 20px; margin: 22px 0; }
+  .muted { color: #52525b; }
+  footer { border-top: 1px solid #d4d4d8; margin-top: 40px; padding-top: 20px; }
+  @media (max-width: 740px) { body { padding: 24px 20px 48px; } .layout { display: block; } nav { position: static; margin-bottom: 32px; } h1 { font-size: 1.9rem; } }
+  @media print { nav { display: none; } .layout { display: block; } body { padding: 0; } }
+</style>
+<header>
+  <h1>Seu Job Tracker, do primeiro acesso à candidatura</h1>
+  <p>Um guia local para configurar seu currículo, instalar a extensão e usar suas próprias credenciais de IA.</p>
+  <p class="muted">Esta página funciona sem internet e não coleta dados. Os links de serviços externos precisam de conexão.</p>
+</header>
+<div class="layout">
+<nav aria-label="Neste guia">
+  <a href="#instalar">Instalação e requisitos</a>
+  <a href="#primeiro">Primeiro acesso</a>
+  <a href="#extensao">Extensão do Chrome</a>
+  <a href="#api">Configurar API de IA</a>
+  <a href="#respostas">Respostas automáticas</a>
+  <a href="#privacidade">Onde ficam seus dados</a>
+  <a href="#problemas">Resolver problemas</a>
+  <a href="#desinstalar">Desinstalar e preservar dados</a>
+</nav>
+<main>
+<section id="instalar">
+  <h2>Instalação e requisitos</h2>
+  <p>O instalador prepara uma cópia do programa na pasta escolhida e baixa as dependências pelo npm. O banco de dados é criado localmente na primeira inicialização. Não é necessário trazer a pasta do computador de quem desenvolveu o aplicativo.</p>
+  <ol>
+    <li>Execute <strong>JobTracker-Setup.exe</strong> e escolha uma pasta exclusiva pelo botão <strong>Escolher...</strong>. Use uma pasta em que seu usuário tenha permissão de escrita.</li>
+    <li>Clique em <strong>Baixar e instalar</strong>. A janela fica compacta e mostra somente o andamento. Node.js, Visual C++ x64 e WebView2 são conferidos; apenas os ausentes são preparados automaticamente pelo WinGet. PostgreSQL já está incluído; o Windows pode pedir permissão de administrador.</li>
+    <li>Após concluir com sucesso, o instalador fecha automaticamente. Em caso de erro, a pasta e <strong>Tentar novamente</strong> reaparecem, e <strong>Mostrar detalhes</strong> abre os registros. Se um requisito pedir reinicialização, reinicie por sua conta e execute novamente o instalador, escolhendo a mesma pasta. Não há reinicialização automática.</li>
+    <li>Abra o atalho <strong>Job Tracker</strong> na área de trabalho. Os registros aparecem desde o início, junto aos estados <strong>Iniciando API</strong> e <strong>Iniciando interface</strong>. Quando os serviços estiverem prontos, o aplicativo abre no navegador padrão, com o título <strong>JOB TRACKER</strong> e o ícone JT. Mantenha o painel aberto enquanto usar o aplicativo. <strong>Parar serviços</strong> interrompe a inicialização ou encerra os serviços e o banco desta instalação; após confirmar a parada, o painel fecha. Nenhuma nova janela deve abrir durante o encerramento.</li>
+  </ol>
+  <p>A pasta sugerida é <code>%LOCALAPPDATA%\JobTracker\app</code>. As telas usam um servidor local, aberto no navegador padrão. Fechar o painel encerra seus serviços e o banco privado. Abra novamente o atalho para retomar após uma parada manual. Durante a inicialização, a parada aguarda a etapa atual terminar para proteger o banco.</p>
+  <p>A preparação automática usa o WinGet para Node.js, Visual C++ x64 e Microsoft Edge WebView2 Runtime. Links manuais: <a href="https://nodejs.org/en/download">Node.js</a>, <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist">Visual C++ x64</a> e <a href="https://developer.microsoft.com/microsoft-edge/webview2/">WebView2 Runtime</a>. Se necessário, atualize o Instalador de Aplicativo da Microsoft Store.</p>
+  <p>A barra acompanha o progresso geral por etapas. A conferência e extração dos arquivos usam a quantidade de bytes processados. Durante downloads sem percentual fornecido, a barra mostra atividade e mantém o percentual das etapas já concluídas. Os 100% só aparecem após a preparação terminar com sucesso.</p>
+  <p>Consulte a <a href="https://github.com/nodejs/node/blob/main/LICENSE">licença do Node.js</a>, os <a href="https://visualstudio.microsoft.com/license-terms/">termos da Microsoft</a> e a <a href="https://www.postgresql.org/about/licence/">licença do PostgreSQL</a>. Ao clicar em instalar, a preparação automática aceita os termos dos pacotes ausentes e da fonte WinGet.</p>
+  <div class="note">Novas instalações Windows x64 usam PostgreSQL 16 privado, sem Docker, WSL ou virtualização. Os dados ficam separados dos executáveis e usam senha exclusiva. Instalações antigas que usavam Docker mantêm sua configuração: não são convertidas automaticamente nem substituídas por um banco vazio.</div>
+  <p>Em caminhos com acentos, o banco usa o alias curto da mesma pasta fornecido pelo Windows. Se o volume não oferecer esse alias, escolha uma pasta sem acentos. Os dados não são movidos para outro local.</p>
+</section>
+<section id="primeiro">
+  <h2>Crie seu próprio perfil</h2>
+  <ol>
+    <li>No primeiro acesso, crie um perfil. A instalação não inclui currículo, conta Google, candidaturas ou credenciais de outra pessoa.</li>
+    <li>Em <strong>Currículo</strong>, informe sua experiência, contatos e localização. Salve as alterações.</li>
+    <li>Em <strong>Preenchimento de candidaturas</strong>, configure os dados que deseja reutilizar: nome completo, CPF, país, cidade, última remuneração, expectativa salarial e links profissionais.</li>
+    <li>Em <strong>PDF para candidaturas</strong>, use <strong>Guardar e ler PDF</strong> para guardar o anexo e preencher os campos vazios com os dados reconhecidos. Para um arquivo já anexado, use <strong>Ler PDF salvo</strong>. A leitura é local, sem API de IA; revise os dados e clique em <strong>Salvar</strong>. Informações já preenchidas são mantidas. PDFs protegidos ou digitalizados como imagem podem exigir preenchimento manual.</li>
+    <li>Informe dados de autodeclaração apenas se quiser utilizá-los; a leitura do PDF não deduz esses dados, salários ou outras respostas ausentes.</li>
+    <li>Em <strong>Vagas</strong>, ajuste cargo, modalidade, localização e fontes. Faça a busca, confira a descrição e salve as vagas de interesse.</li>
+  </ol>
+  <p>A chave de IA é opcional para organizar candidaturas, buscar vagas e preencher dados já cadastrados.</p>
+</section>
+<section id="extensao">
+  <h2>Instale a extensão no perfil certo</h2>
+  <p>Cada instalação gera sua pasta da extensão na própria máquina, sem carregar dados do desenvolvedor. O código e a versão são iguais para todos; currículo e credenciais vêm somente da instalação local em uso.</p>
+  <ol>
+    <li>No painel, clique em <strong>Gerar extensão</strong>. A primeira instalação também faz isso automaticamente.</li>
+    <li>Abra <code>chrome://extensions</code> no perfil Chrome em que você se candidata.</li>
+    <li>Ative <strong>Modo do desenvolvedor</strong> e escolha <strong>Carregar sem compactação</strong>.</li>
+    <li>Selecione a subpasta <code>job-tracker-chrome-VERSÃO</code>, dentro de <code>dist\chrome</code> da instalação. Ela contém <code>manifest.json</code>.</li>
+    <li>No programa, clique em <strong>Preencher formulário</strong> na vaga. A candidatura abre no Chrome com sua extensão e sessão habituais. Permita o acesso HTTPS solicitado. Se usa vários perfis do Chrome, abra o desejado antes da candidatura.</li>
+  </ol>
+  <p>Mantenha a pasta gerada no disco. O ZIP precisa ser extraído antes de carregar. Para atualizar na mesma pasta, clique em <strong>Recarregar</strong> no Chrome. Se a versão gerar uma pasta nova, remova a extensão antiga e carregue a nova. Cada perfil do Chrome exige sua própria instalação manual.</p>
+  <p>Referência: <a href="https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked">instalar uma extensão local no Chrome</a>.</p>
+</section>
+<section id="api">
+  <h2>Configure sua API de IA</h2>
+  <p>O provedor atualmente integrado é a <strong>Anthropic / Claude API</strong>. Uma assinatura de aplicativo não substitui automaticamente a configuração de cobrança da API. Consulte sua conta e seus limites antes de usar.</p>
+  <ol>
+    <li>Acesse sua conta na <a href="https://platform.claude.com/settings/keys">plataforma Claude, página de chaves</a>. Configure a cobrança da API e crie sua própria chave.</li>
+    <li>No programa, abra <strong>Opções → Configurar API de IA</strong>.</li>
+    <li>Cole a chave e clique em <strong>Salvar chave</strong>. O campo é mascarado; a chave é protegida com DPAPI para seu usuário Windows e não aparece no guia, no ZIP da extensão ou nos registros da operação.</li>
+    <li>Clique em <strong>Parar serviços</strong> e depois em <strong>Iniciar</strong> para aplicar a configuração.</li>
+    <li>Solicite uma resposta por IA no aplicativo. A primeira geração confere a chave e a disponibilidade do modelo. Salvar a chave não faz uma chamada paga de teste.</li>
+  </ol>
+  <p>Para desativar, use <strong>Remover chave</strong> no mesmo diálogo e reinicie. Se você também configurou uma chave manualmente em <code>recruiter-backend\.env</code>, ela precisa ser removida desse arquivo.</p>
+  <p>Não compartilhe sua chave nem envie capturas de tela contendo credenciais. A proteção do Windows não protege contra um programa malicioso executando como o mesmo usuário.</p>
+  <p>Referência: <a href="https://platform.claude.com/docs/en/get-api-key">como obter sua chave Claude API</a>.</p>
+</section>
+<section id="respostas">
+  <h2>Ative a apresentação personalizada</h2>
+  <ol>
+    <li>Preencha o resumo e a trajetória profissional no currículo.</li>
+    <li>Em <strong>Apresentação para empresas</strong>, escreva uma apresentação-base, se desejar. Ative <strong>Personalizar e preencher a apresentação para cada empresa</strong> e salve.</li>
+    <li>Use uma vaga salva com empresa e descrição. Clique em <strong>Preencher formulário</strong>.</li>
+    <li>Ao encontrar a etapa de apresentação compatível da Gupy, a extensão solicita um rascunho com base no currículo profissional e na vaga. Revise antes de enviar.</li>
+  </ol>
+  <div class="note">As respostas por IA usam um serviço externo e podem gerar cobranças. Nem toda pergunta aberta ou teste comportamental é respondido automaticamente. Informações ausentes e perguntas sobre suas preferências podem exigir sua participação. O envio final é seu.</div>
+</section>
+<section id="privacidade">
+  <h2>Onde ficam seus dados</h2>
+  <table>
+    <thead><tr><th scope="col">Dado</th><th scope="col">Destino</th></tr></thead>
+    <tbody>
+      <tr><td>Currículo, perfis e candidaturas</td><td>PostgreSQL privado em <code>data\postgresql</code>, com senha exclusiva e acesso apenas por loopback.</td></tr>
+      <tr><td>PDF e configurações de fontes</td><td>Pasta <code>data</code> da instalação.</td></tr>
+      <tr><td>Chave de IA salva pelo painel</td><td>Arquivo protegido pelo Windows em <code>dist\windows\runtime\anthropic.key</code>.</td></tr>
+      <tr><td>Sessão da janela integrada</td><td>Pasta <code>data\desktop-webview</code>, separada do Chrome. Nenhuma sessão do Chrome é copiada para o programa.</td></tr>
+      <tr><td>Geração de apresentação por IA</td><td>Informações profissionais e contexto da vaga são enviados ao provedor configurado. Nome, contatos e campos de autodeclaração não são acrescentados automaticamente pelo gerador de apresentação.</td></tr>
+      <tr><td>Preenchimento e anexo em candidatura</td><td>Os dados usados passam a estar na página da empresa. A decisão de envio final continua com você.</td></tr>
+    </tbody>
+  </table>
+  <p>O instalador é montado com uma lista de código e recursos permitidos. Não inclui bancos, backups, currículos, anexos, perfis de navegador, arquivos <code>.env</code>, chaves protegidas nem logs. O pacote acompanha um relatório com caminhos e hashes para conferência; isso é uma verificação técnica, não uma promessa de risco zero.</p>
+  <p>Os serviços escutam apenas em <code>127.0.0.1</code>. Outra instalação usando as mesmas portas precisa ser encerrada antes de abrir esta. O painel não deve reutilizar os dados de uma instalação diferente.</p>
+  <p>As dependências são baixadas pelo npm. Os binários públicos do PostgreSQL vêm no instalador, obtidos da EDB e verificados por hash durante o empacotamento; nenhum banco acompanha esses binários. O aplicativo consulta sites de vagas; IA e email dependem da configuração. Distribua somente o instalador e o relatório público, nunca a pasta de uso.</p>
+  <p>O desinstalador preserva seus dados por padrão. A exclusão do banco, anexos e credenciais exige selecionar a opção de excluir dados e confirmar. O instalador não transfere perfis de outras máquinas automaticamente.</p>
+</section>
+<section id="problemas">
+  <h2>Quando algo não funcionar</h2>
+  <table>
+    <thead><tr><th scope="col">Mensagem ou situação</th><th scope="col">O que fazer</th></tr></thead>
+    <tbody>
+      <tr><td>Banco privado não iniciou</td><td>Confira <code>postgresql.log</code> nos registros locais, a permissão da pasta e o Visual C++ x64. Reinstale preservando dados se faltarem binários.</td></tr>
+      <tr><td>Porta 3000, 3333 ou 55432 ocupada</td><td>Encerre a outra instalação ou serviço que usa a porta. Não aponte esta instalação para o banco de outra pessoa.</td></tr>
+      <tr><td>Falha ao baixar dependências</td><td>Confira a conexão e Node.js 22+. Execute o instalador novamente; as configurações locais são preservadas.</td></tr>
+      <tr><td>Requisito ausente ou WinGet indisponível</td><td>Os requisitos ausentes são preparados automaticamente ao instalar. Se necessário, atualize o Instalador de Aplicativo da Microsoft Store ou utilize os links oficiais acima.</td></tr>
+      <tr><td>Chave inválida ou erro 401</td><td>Confira a chave na plataforma Claude, salve novamente no painel e reinicie os serviços.</td></tr>
+      <tr><td>Sem créditos, limite ou modelo indisponível</td><td>Confira cobrança e limites na plataforma. O aplicativo mostra o erro; a disponibilidade também depende do provedor.</td></tr>
+      <tr><td>Extensão sem currículo ou permissão</td><td>Salve o currículo, use o mesmo perfil do Chrome, recarregue a extensão e abra a vaga pelo Job Tracker.</td></tr>
+      <tr><td>Campo não preenchido</td><td>Confira se o dado está salvo e complete manualmente o que faltar. Páginas diferentes podem precisar de ajustes de compatibilidade.</td></tr>
+    </tbody>
+  </table>
+  <p>Use <strong>Abrir registros dos serviços</strong> para diagnosticar falhas. Logs podem conter dados do seu uso: revise e oculte informações pessoais antes de enviá-los a alguém.</p>
+</section>
+<section id="desinstalar">
+  <h2>Desinstale com a escolha dos dados</h2>
+  <ol>
+    <li>Feche o painel. Abra <strong>Desinstalar Job Tracker.exe</strong> na pasta escolhida, use o atalho do menu Iniciar ou procure Job Tracker em <strong>Aplicativos instalados</strong> do Windows.</li>
+    <li>Para manter currículo, banco, anexos, configurações e chave protegida, deixe desmarcada a opção <strong>Excluir também meus dados</strong>. Uma reinstalação na mesma pasta poderá reaproveitá-los.</li>
+    <li>Para remover também esses dados, selecione a opção e confirme. O banco privado será encerrado antes da exclusão permanente de sua pasta.</li>
+    <li>Clique em <strong>Desinstalar</strong> e acompanhe a conferência dos arquivos. Itens em uso são verificados novamente por até 20 segundos. A janela fecha assim que a remoção é confirmada; se houver pendências, fica aberta com o motivo. Dados preservados e arquivos desconhecidos podem permanecer na pasta. Depois, remova a extensão em <code>chrome://extensions</code>.</li>
+  </ol>
+  <p>O desinstalador remove os serviços e arquivos conhecidos desta instalação. Arquivos desconhecidos e requisitos compartilhados são mantidos. Bancos de outras instalações não são apagados. A extensão permanece sob o controle do Chrome.</p>
+</section>
+<footer><p>Job Tracker · Guia incluído na instalação Windows. Consulte este arquivo também pelo botão <strong>Guia de uso</strong> no painel.</p></footer>
+</main></div>
+</html>

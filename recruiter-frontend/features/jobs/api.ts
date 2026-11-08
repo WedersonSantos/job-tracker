@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import {
   discoverResultSchema,
   fillReportSchema,
@@ -6,7 +7,28 @@ import {
   jobSearchResultSchema,
   savedJobListSchema,
   savedJobSchema,
+  sourceOverviewSchema,
 } from "@recruit/shared";
+import type { SourceSettings } from "@recruit/shared";
+
+export async function openNativeChrome(
+  profileId: string,
+  url: string,
+  chromeProfile?: string,
+  prepareOnly = false,
+) {
+  return z
+    .object({ message: z.string(), requestId: z.string().uuid() })
+    .parse(
+      await request(
+        `/form-fill/chrome?profileId=${encodeURIComponent(profileId)}`,
+        {
+          method: "POST",
+          body: JSON.stringify({ url, chromeProfile, prepareOnly }),
+        },
+      ),
+    );
+}
 import type {
   DiscoverResult,
   FillReport,
@@ -54,6 +76,23 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
   }
 
   return body;
+}
+
+export async function getSourceOverview() {
+  return sourceOverviewSchema.parse(await request("/jobs/sources"));
+}
+export async function saveSourceSettings(settings: SourceSettings) {
+  return sourceOverviewSchema.parse(
+    await request("/jobs/sources", {
+      method: "POST",
+      body: JSON.stringify(settings),
+    }),
+  );
+}
+export async function checkSources() {
+  return sourceOverviewSchema.parse(
+    await request("/jobs/sources/check", { method: "POST" }),
+  );
 }
 
 /** Um lote da descoberta. O cursor é opaco: vem do lote anterior, sem ser lido. */

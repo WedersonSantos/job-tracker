@@ -6,9 +6,8 @@ import { useState, useTransition } from "react";
 import { IconExternalLink, IconTrash } from "@/components/icons";
 import {
   applyToJobAction,
-  fillFormAction,
   unsaveJobAction,
-  type FillState,
+  openNativeChromeAction,
 } from "@/features/jobs/actions";
 import { JobsTabs } from "@/features/jobs/components/jobs-tabs";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/features/jobs/components/job-meta";
 import type { SavedJob } from "@/features/jobs/types";
 import { safeExternalUrl } from "@/lib/safe-url";
+import { chromeBridge } from "@/features/jobs/chrome-bridge";
 
 interface SavedJobsListProps {
   profileId: string;
@@ -72,11 +72,45 @@ function SavedCard({
 }) {
   const { job, application } = item;
   const [error, setError] = useState<string | null>(null);
-  const [fill, setFill] = useState<FillState>({ status: "idle" });
   const [confirming, setConfirming] = useState(false);
+  const [nativeMessage, setNativeMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const salary = formatSalary(job);
   const portalUrl = safeExternalUrl(job.url);
+
+  const openChrome = async () => {
+    if (!portalUrl) return;
+    setError(null);
+    setNativeMessage(null);
+    const connected = (await chromeBridge("ping")).ok;
+    const result = await openNativeChromeAction(
+      profileId,
+      portalUrl,
+      undefined,
+      connected,
+    );
+    if (result.status === "error") {
+      setError(result.message);
+      return;
+    }
+    if (connected && "requestId" in result) {
+      const opened = await chromeBridge("openRequest", result.requestId);
+      if (!opened.ok) {
+        setError(
+          opened.error ??
+            "Não consegui localizar a aba. Confira a extensão e tente novamente.",
+        );
+        return;
+      }
+      setNativeMessage(
+        opened.reused
+          ? "Continue na aba da candidatura já aberta."
+          : result.message,
+      );
+      return;
+    }
+    setNativeMessage(result.message);
+  };
 
   const run = (action: () => Promise<{ status: string; message?: string }>) => {
     setError(null);
@@ -123,33 +157,18 @@ function SavedCard({
             </span>
           )}
 
-          {fill.status === "success" && (
-            <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800">
-              <span className="font-medium">
-                Preenchido no navegador — revise e envie você.
-              </span>
-              <span className="text-zinc-500 dark:text-zinc-400">
-                {fill.report.filled.length > 0
-                  ? `Preenchi: ${fill.report.filled.map((f) => f.what).join(", ")}.`
-                  : "Não reconheci nenhum campo neste formulário."}
-              </span>
-              {fill.report.skipped.length > 0 && (
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Ficaram com você: {fill.report.skipped.join(", ")}.
-                </span>
-              )}
-            </div>
-          )}
-
-          {fill.status === "error" && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-              {fill.message}
-            </p>
-          )}
-
           {error && (
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">
               {error}
+            </p>
+          )}
+
+          {nativeMessage && (
+            <p
+              role="status"
+              className="text-sm text-zinc-500 dark:text-zinc-400"
+            >
+              {nativeMessage}
             </p>
           )}
 
@@ -177,12 +196,7 @@ function SavedCard({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    setError(null);
-                    setFill(await fillFormAction(profileId, portalUrl));
-                  })
-                }
+                onClick={() => startTransition(openChrome)}
                 className="cursor-pointer rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium transition hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
               >
                 {pending ? "Abrindo…" : "Preencher formulário"}
