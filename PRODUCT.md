@@ -25,6 +25,7 @@ O painel abre a aplicação e gera a extensão para instalar pelo modo de desenv
 ## Product Principles
 
 - Dados e serviços locais, com acesso pela interface de loopback.
+- Web instalável com acesso HTTPS opcional protegido por senha para uma instalação pessoal; API e banco privados. Sem cache offline de dados pessoais. Extensão de preenchimento permanece no computador.
 - Reutilizar serviços já ativos.
 - Indicar erros e o próximo passo em português.
 - Manter a revisão e o envio final das candidaturas com o usuário.

@@ -12,6 +12,18 @@ const PROFILE = join(
 export const SEARCH_TIMEOUT_MS = 60_000;
 export class SearchAccessChallenge extends Error {}
 
+export function searchBrowserOptions(env = process.env) {
+  return {
+    ...(env.DISCOVERY_BROWSER_EXECUTABLE
+      ? { executablePath: env.DISCOVERY_BROWSER_EXECUTABLE }
+      : { channel: 'chrome' }),
+    headless: env.DISCOVERY_BROWSER_HEADLESS === 'true',
+    timeout: 15_000,
+    viewport: { width: 1280, height: 900 },
+    args: ['--no-first-run', '--no-default-browser-check'],
+  };
+}
+
 export function searchFailure(error: unknown): string {
   const message =
     error instanceof Error ? error.message : 'Falha na pesquisa no navegador.';
@@ -30,13 +42,7 @@ export class BrowserSearchService implements OnModuleDestroy {
   private window() {
     if (!this.context) {
       this.context = chromium
-        .launchPersistentContext(PROFILE, {
-          channel: 'chrome',
-          headless: false,
-          timeout: 15_000,
-          viewport: { width: 1280, height: 900 },
-          args: ['--no-first-run', '--no-default-browser-check'],
-        })
+        .launchPersistentContext(PROFILE, searchBrowserOptions())
         .then(async (context) => {
           await guardApplicationNavigation(context);
           context.on('close', () => {
@@ -72,6 +78,11 @@ export class BrowserSearchService implements OnModuleDestroy {
       ]);
     } catch (error) {
       if (error instanceof SearchAccessChallenge) {
+        if (process.env.DISCOVERY_BROWSER_HEADLESS === 'true') {
+          throw new SearchAccessChallenge(
+            'O site pediu verificação de acesso. Esta fonte não pôde ser consultada no servidor sem interação manual. Tente outra fonte ou pesquise diretamente no site.',
+          );
+        }
         keepPage = true;
         const host = new URL(page.url()).hostname;
         await this.blockedPages

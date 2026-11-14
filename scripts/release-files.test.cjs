@@ -12,7 +12,7 @@ test('dados locais e configurações privadas nunca são arquivos distribuíveis
     'recruiter-frontend/public/curriculo.pdf', 'recruiter-frontend/public/linkedin.csv',
     'chrome-extension/storageState.json', 'dist/windows/runtime/anthropic.key',
     'data/resumes/person/resume.json', '.browser-profile/Default/Cookies',
-    'backup.sql', 'tmp/profile.json', 'recruiter-frontend/app/private.env',
+    'backup.sql', 'tmp/profile.json', 'recruiter-frontend/app/private.env', 'data/job-tracker/web-access.json', 'web-access.json',
   ]) assert.equal(allowed(file), false, file);
 });
 

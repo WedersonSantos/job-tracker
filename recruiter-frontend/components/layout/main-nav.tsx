@@ -10,6 +10,7 @@ import {
   IconDocument,
   IconList,
   IconMail,
+  IconInstall,
 } from "@/components/icons";
 
 interface NavItem {
@@ -20,17 +21,14 @@ interface NavItem {
   href?: string;
 }
 
-/**
- * As seções vêm da lista de funcionalidades da seção 1 do CLAUDE.md — não são
- * placeholders inventados. Só "Candidaturas" está ativa; as outras aparecem
- * desabilitadas para a navegação não prometer o que ainda não existe.
- */
+/** Main application sections, including device installation and access. */
 const items: NavItem[] = [
   { id: "candidaturas", label: "Candidaturas", icon: <IconList />, href: "/" },
   { id: "vagas", label: "Vagas", icon: <IconBriefcase />, href: "/vagas" },
   { id: "curriculo", label: "Currículo", icon: <IconDocument />, href: "/curriculo" },
   { id: "emails", label: "Emails", icon: <IconMail />, href: "/emails" },
   { id: "metricas", label: "Métricas", icon: <IconChart />, href: "/metricas" },
+  { id: "instalar", label: "Instalar", icon: <IconInstall />, href: "/instalar" },
 ];
 
 /** "/" só casa exato; as demais casam com as subrotas (/vagas/salvas, /vagas/x). */
@@ -42,11 +40,11 @@ export function MainNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Seções" className="min-w-0">
-      <ul className="flex items-center gap-1 overflow-x-auto">
+    <nav aria-label="Seções" className="order-3 w-full min-w-0 pb-2 lg:order-none lg:w-auto lg:pb-0">
+      <ul className="flex items-center justify-between gap-1 overflow-x-auto lg:justify-start">
         {items.map((item) => {
           const active = item.href ? isActive(pathname, item.href) : false;
-          const className = `group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+          const className = `group relative flex min-h-12 flex-col justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium transition-colors duration-200 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm ${
             item.href
               ? active
                 ? "text-zinc-50"
@@ -60,7 +58,7 @@ export function MainNav() {
               <span className="relative transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
                 {item.icon}
               </span>
-              <span className="relative hidden sm:inline">{item.label}</span>
+              <span className="relative">{item.label}</span>
             </>
           );
 

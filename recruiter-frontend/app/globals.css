@@ -57,6 +57,13 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+@media (max-width: 767px) {
+  [data-shell] input, [data-shell] textarea, [data-shell] select { font-size: 16px; }
+}
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+}
+
 h1,
 h2,
 h3 {

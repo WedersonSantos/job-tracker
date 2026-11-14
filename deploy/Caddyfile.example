@@ -1,0 +1,4 @@
+# Substitua pelo mesmo domínio cadastrado em WEB_ORIGIN e no acesso web.
+jobtracker.exemplo.com {
+    reverse_proxy 127.0.0.1:3000
+}

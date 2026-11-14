@@ -22,6 +22,10 @@ const iconProps = {
   "aria-hidden": true,
 };
 
+export function IconInstall() {
+  return <svg {...iconProps}><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" /></svg>;
+}
+
 export function IconList() {
   return (
     <svg {...iconProps}>

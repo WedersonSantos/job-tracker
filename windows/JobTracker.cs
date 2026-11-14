@@ -400,7 +400,7 @@ internal sealed class TrackerPanel : Form
             {
                 client.Timeout = TimeSpan.FromSeconds(3);
                 bool api = await IsReady(client, "http://127.0.0.1:3333/profiles", "[");
-                bool web = await IsReady(client, "http://127.0.0.1:3000", "<title>Job Tracker</title>");
+                bool web = await IsReady(client, "http://127.0.0.1:3000/api/health", "\"app\":\"job-tracker\"");
                 if (!IsDisposed)
                 {
                     apiReady = api; interfaceReady = web;

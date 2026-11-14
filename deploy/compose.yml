@@ -1,0 +1,55 @@
+name: jobtracker-hosted
+services:
+  database:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jobtracker
+      POSTGRES_USER: jobtracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina uma senha privada para o banco}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U jobtracker -d jobtracker']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  app:
+    build:
+      context: ../dist/hosted/context
+      dockerfile: deploy/Dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://jobtracker:${POSTGRES_PASSWORD:?Defina a senha do banco}@database:5432/jobtracker
+      WEB_ORIGIN: ${WEB_ORIGIN:?Defina o endereço HTTPS}
+      IMAP_SYNC_ON_BOOT: 'false'
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_MAILBOX: ${IMAP_MAILBOX:-job-tracker}
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - files:/data
+    shm_size: 256mb
+    stop_grace_period: 30s
+    depends_on:
+      database: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, deploy/healthcheck.cjs]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+volumes:
+  database:
+  files:

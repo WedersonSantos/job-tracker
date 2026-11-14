@@ -203,13 +203,13 @@ try {
         $api = Start-Owned 'api' 'run dev:worker'
         Wait-Service 'http://127.0.0.1:3333/profiles' '^\s*\[' $api 180
     } else { Write-Output 'API já ativa. Reutilizando.' }
-    if (!(Test-Service 'http://127.0.0.1:3000' '<title>Job Tracker</title>')) {
+    if (!(Test-Service 'http://127.0.0.1:3000/api/health' '"app"\s*:\s*"job-tracker"')) {
         Test-StopRequest
         if (Test-Listener 3000) { throw 'A porta 3000 está ocupada, mas o Job Tracker não respondeu corretamente. Confira o serviço existente.' }
         Write-Output 'Iniciando interface local...'
         # Webpack evita o erro de CRC observado no cache local do Turbopack.
         $web = Start-Owned 'web' 'run dev -w recruiter-frontend -- --webpack'
-        Wait-Service 'http://127.0.0.1:3000' '<title>Job Tracker</title>' $web 240
+        Wait-Service 'http://127.0.0.1:3000/api/health' '"app"\s*:\s*"job-tracker"' $web 240
     } else { Write-Output 'Interface já ativa. Reutilizando.' }
     Test-StopRequest
     Write-Output 'Job Tracker pronto: http://127.0.0.1:3000'

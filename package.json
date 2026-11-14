@@ -9,6 +9,9 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare:hosted": "node scripts/prepare-hosted.cjs",
+    "test:hosted": "node --test scripts/hosted.test.cjs",
+    "test:pwa": "node --import tsx --test recruiter-frontend/lib/web-access-core.test.ts recruiter-frontend/lib/web-access-store.test.ts && node --test scripts/pwa.test.cjs scripts/release-files.test.cjs",
     "build:extension": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-extension.ps1",
     "build:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1",
     "build:installer": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File windows/build-installer.ps1",

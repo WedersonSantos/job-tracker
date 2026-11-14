@@ -4,10 +4,15 @@ Rastreador pessoal de candidaturas a vagas de emprego. Encontra vagas, lê os
 emails dos processos seletivos, ajuda a preencher formulários e mostra o que
 acontece depois que você se candidata.
 
-> **Roda só na sua máquina.** É um app para uma pessoa, sem login e sem
-> deploy: você clona, sobe e usa em `127.0.0.1`. A API não tem autenticação
-> de propósito, e isso só é seguro porque nada fica exposto na rede. Não
-> publique num servidor. Mais em [Segurança](#segurança).
+> **Pessoal e local por padrão.** Use em `127.0.0.1` ou configure senha e um
+> endereço HTTPS para acessar a mesma instalação em outros dispositivos.
+> O site pode ser instalado como aplicativo web; a API e o banco continuam
+> privados. Veja o [guia web instalável](docs/web-instalavel.md).
+
+Para funcionar sem o computador ligado, há um
+[pacote de hospedagem](deploy/README.md) com API/interface de produção,
+PostgreSQL privado, arquivos persistentes e busca no Chromium sem janela.
+É necessário definir servidor e domínio; não há hospedagem criada automaticamente.
 
 ## Por que existe
 
@@ -24,6 +29,7 @@ sugere o novo status. Você confirma com um clique.
 
 | Funcionalidade | Precisa de chave da Anthropic? |
 | --- | --- |
+| Aplicativo web instalável, com acesso HTTPS opcional por senha | não |
 | Candidaturas: cadastro, status, histórico, busca, filtros e ordenação | não |
 | Descoberta de vagas em Gupy, Greenhouse, Lever, Ashby, agregadores remotos, portais brasileiros e alertas do LinkedIn | não |
 | Currículo estruturado, PDF pela impressão do navegador e versão congelada em cada candidatura | não |
@@ -434,24 +440,27 @@ validou: validação no cliente é conforto, não controle.
 
 ## Segurança
 
-**Tudo escuta só em `127.0.0.1`:** a API, as telas e o Postgres. A API não
-tem autenticação, o que é deliberado para um app pessoal e só é seguro porque
-ninguém mais a alcança. Com as portas abertas na rede, qualquer pessoa no
-mesmo Wi-Fi leria seu currículo e seus emails. O Postgres usa a senha padrão
-do `.env.example`, que é pública; ela só é aceitável porque a porta não sai da
-máquina.
+**API, interface e banco escutam em loopback por padrão.** A API não tem
+autenticação própria e deve permanecer privada. Para acesso por outro
+dispositivo, configure senha e origem HTTPS na tela **Instalar** e encaminhe
+somente a interface pelo proxy HTTPS. Isso protege uma instalação pessoal,
+com a mesma senha para todos os perfis; não é uma plataforma multiusuário.
 
 Escutar só localmente não basta contra o próprio navegador: um site aberto
 nele consegue mandar requisições para `127.0.0.1` e, com DNS rebinding, ler as
-respostas. Por isso a API e as telas recusam qualquer `Host` que não seja
-`127.0.0.1` ou `localhost`, e a API só aceita escrita com
+respostas. Por isso a API recusa hosts externos, e a interface aceita apenas
+loopback ou a origem HTTPS explicitamente cadastrada. Com acesso remoto
+configurado, páginas e ações privadas exigem sessão, inclusive localmente.
+A API só aceita escrita com
 `Content-Type: application/json`, o tipo de requisição que um site de fora não
 consegue mandar sem o navegador pedir licença antes.
 
-**Não publique este app num servidor** sem antes adicionar autenticação. Não é
-uma mudança de configuração.
+**Não exponha a API ou o PostgreSQL.** Consulte o
+[guia de acesso e instalação web](docs/web-instalavel.md) antes de conectar
+um domínio. A configuração não contrata hospedagem nem cria um túnel.
 
-Credenciais ficam só nos arquivos `.env`, que estão no `.gitignore`.
+Credenciais de provedores ficam na configuração privada. A senha web é um
+hash e a chave de sessão fica no diretório de dados, fora do pacote público.
 
 ## Desenvolvimento
 

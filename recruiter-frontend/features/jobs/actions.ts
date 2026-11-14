@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { requestAccess } from "@/lib/web-access-core";
+import { getWebConfig } from "@/lib/web-access-store";
 import type {
   FillReport,
   DiscoverResult,
@@ -176,6 +179,12 @@ export type FillState =
   | { status: "success"; report: FillReport }
   | { status: "error"; message: string };
 
+async function localAutomation() {
+  const h = await headers();
+  return requestAccess(h.get("host"), h.get("x-forwarded-host"), h.get("x-forwarded-proto") || "http", getWebConfig())?.local === true;
+}
+const desktopAutomationMessage = "Para preencher automaticamente, abra o Job Tracker pelo endereço local no computador com a extensão instalada. No celular, abra a vaga e preencha no site da empresa.";
+
 /**
  * Abre o navegador e preenche o formulário da vaga.
  *
@@ -187,6 +196,7 @@ export async function fillFormAction(
   url: string,
 ): Promise<FillState> {
   try {
+    if (!(await localAutomation())) return { status: "error", message: desktopAutomationMessage };
     return { status: "success", report: await fillJobForm(profileId, url) };
   } catch (error) {
     return {
@@ -206,6 +216,7 @@ export async function openNativeChromeAction(
   prepareOnly = false,
 ) {
   try {
+    if (!(await localAutomation())) return { status: "error", message: desktopAutomationMessage };
     return {
       status: "success",
       ...(await openNativeChrome(profileId, url, chromeProfile, prepareOnly)),

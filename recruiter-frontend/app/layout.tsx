@@ -1,12 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist_Mono, Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import { Backdrop, MotionProvider } from "@/components/motion";
-import { ProfileGate } from "@/features/profile/components/profile-gate";
-import {
-  getProfiles,
-  getSelectedProfile,
-} from "@/features/profile/current-profile";
+import { PwaProvider } from "@/features/pwa/pwa-provider";
 import "./globals.css";
 
 /*
@@ -35,35 +31,31 @@ const code = Geist_Mono({
 export const metadata: Metadata = {
   title: "JOB TRACKER",
   description: "Rastreador pessoal de candidaturas a vagas.",
+  applicationName: "Job Tracker",
+  appleWebApp: { capable: true, title: "Job Tracker", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
-/**
- * O gate vive no layout, e não numa página: sem perfil escolhido, nenhuma rota
- * tem o que mostrar. Aqui ele guarda todas — inclusive quem abre direto em
- * /vagas/salvas com o cookie vazio.
- */
+export const viewport: Viewport = { themeColor: "#141821", width: "device-width", initialScale: 1, viewportFit: "cover" };
+
+/** Public shell; private profile data is loaded only by (workspace)/layout. */
 export default async function RootLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [profiles, selected] = await Promise.all([
-    getProfiles(),
-    getSelectedProfile(),
-  ]);
-
   return (
     <html
       lang="pt-BR"
       // `dark` fixo: o tema é escuro sempre, não conforme o sistema.
       className={`dark ${body.variable} ${heading.variable} ${code.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-dvh flex flex-col">
         <Backdrop />
         <MotionProvider>
-          <ProfileGate profiles={profiles} selected={selected}>
+          <PwaProvider>
             {children}
-          </ProfileGate>
+          </PwaProvider>
         </MotionProvider>
       </body>
     </html>
